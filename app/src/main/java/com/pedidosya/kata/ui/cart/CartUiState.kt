@@ -8,10 +8,11 @@ import com.pedidosya.kata.domain.model.CouponValidationResult
  * Closed render state for the cart screen, per `sdd/shopping-cart/design`.
  */
 sealed interface CartUiState {
-
     data object Loading : CartUiState
 
-    data class Error(val reason: CartErrorReason) : CartUiState
+    data class Error(
+        val reason: CartErrorReason,
+    ) : CartUiState
 
     /**
      * @property totals live preview of [CalculateTotals][com.pedidosya.kata.domain.usecase.CalculateTotals]
@@ -31,13 +32,22 @@ sealed interface CartUiState {
         val isRefreshing: Boolean = false,
     ) : CartUiState {
         /**
-         * Confirm gating per `sdd/shopping-cart/spec`: an empty field with no lingering Valid
-         * result bypasses validation; a Valid result always confirms; any other non-blank,
-         * non-Valid state (Invalid/Inactive/ServiceError/NotApplied-with-text) blocks confirm.
+         * Confirm gating per `sdd/shopping-cart/spec`: an empty field bypasses validation,
+         * and typed [CouponValidationResult.NotApplied] input remains confirmable so Confirm
+         * can validate it. Terminal validation failures and in-flight validation block Confirm.
          */
         val canConfirm: Boolean get() =
-            (couponInput.isBlank() && coupon !is CouponValidationResult.Valid) ||
-                coupon is CouponValidationResult.Valid
+            !isValidating &&
+                when (coupon) {
+                    CouponValidationResult.Invalid,
+                    CouponValidationResult.Inactive,
+                    CouponValidationResult.ServiceError,
+                    -> false
+
+                    CouponValidationResult.NotApplied,
+                    is CouponValidationResult.Valid,
+                    -> true
+                }
     }
 }
 
