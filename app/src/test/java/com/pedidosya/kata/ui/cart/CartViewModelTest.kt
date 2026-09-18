@@ -63,6 +63,55 @@ class CartViewModelTest {
         }
 
     @Test
+    fun `first load without cache and a successful empty refresh transitions Loading to Success`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
+            val refreshGate = CompletableDeferred<Result<Unit>>()
+            every { repository.observeCart() } returns cartFlow
+            coEvery { repository.refresh() } coAnswers { refreshGate.await() }
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                assertEquals(CartUiState.Loading, awaitItem())
+
+                refreshGate.complete(Result.success(Unit))
+
+                assertEquals(
+                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    awaitItem(),
+                )
+            }
+        }
+
+    @Test
+    fun `first load without cache and a successful refresh transitions Loading to item Success`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
+            val refreshedItems = listOf(item(id = "p1"))
+            val refreshGate = CompletableDeferred<Unit>()
+            every { repository.observeCart() } returns cartFlow
+            coEvery { repository.refresh() } coAnswers {
+                refreshGate.await()
+                cartFlow.value = refreshedItems
+                Result.success(Unit)
+            }
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                assertEquals(CartUiState.Loading, awaitItem())
+
+                refreshGate.complete(Unit)
+
+                assertEquals(
+                    CartUiState.Success(refreshedItems, calculateTotals(refreshedItems, null)),
+                    awaitItem(),
+                )
+            }
+        }
+
+    @Test
     fun `first load without cache and a failed refresh renders Error`() =
         runTest(UnconfinedTestDispatcher()) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
@@ -74,6 +123,25 @@ class CartViewModelTest {
             viewModel.state.test {
                 assertEquals(CartUiState.Error(CartErrorReason.NoCacheAvailable), awaitItem())
             }
+        }
+
+    @Test
+    fun `cache remains visible when the automatic background refresh fails`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cachedItems = listOf(item(id = "p1"))
+            every { repository.observeCart() } returns MutableStateFlow(cachedItems)
+            coEvery { repository.refresh() } returns Result.failure(IOException("offline"))
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                assertEquals(
+                    CartUiState.Success(cachedItems, calculateTotals(cachedItems, null)),
+                    awaitItem(),
+                )
+                assertFalse(viewModel.state.value is CartUiState.Error)
+            }
+            coVerify(exactly = 1) { repository.refresh() }
         }
 
     @Test
@@ -231,6 +299,7 @@ class CartViewModelTest {
 
             val viewModel = newViewModel()
             viewModel.onCouponInputChanged("TECH15")
+            assertTrue((viewModel.state.value as CartUiState.Success).canConfirm)
 
             viewModel.events.test {
                 viewModel.onConfirmPurchase()

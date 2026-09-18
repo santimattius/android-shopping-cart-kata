@@ -36,8 +36,8 @@ class CartViewModel(
     private val repository: CartRepository,
     private val validateCoupon: ValidateCoupon,
 ) : ViewModel() {
-
     private val calculateTotals = CalculateTotals()
+    private var latestItems: List<CartItem> = emptyList()
 
     private val _state = MutableStateFlow<CartUiState>(CartUiState.Loading)
     val state: StateFlow<CartUiState> = _state.asStateFlow()
@@ -48,15 +48,17 @@ class CartViewModel(
     init {
         viewModelScope.launch {
             repository.observeCart().collect { items ->
+                latestItems = items
                 val current = _state.value
                 if (items.isNotEmpty() || current is CartUiState.Success) {
-                    _state.value = successFor(
-                        items = items,
-                        couponInput = (current as? CartUiState.Success)?.couponInput ?: "",
-                        coupon = (current as? CartUiState.Success)?.coupon ?: CouponValidationResult.NotApplied,
-                        isValidating = (current as? CartUiState.Success)?.isValidating ?: false,
-                        isRefreshing = (current as? CartUiState.Success)?.isRefreshing ?: false,
-                    )
+                    _state.value =
+                        successFor(
+                            items = items,
+                            couponInput = (current as? CartUiState.Success)?.couponInput ?: "",
+                            coupon = (current as? CartUiState.Success)?.coupon ?: CouponValidationResult.NotApplied,
+                            isValidating = (current as? CartUiState.Success)?.isValidating ?: false,
+                            isRefreshing = (current as? CartUiState.Success)?.isRefreshing ?: false,
+                        )
                 }
             }
         }
@@ -89,13 +91,14 @@ class CartViewModel(
     fun onCouponInputChanged(text: String) {
         val current = _state.value
         if (current !is CartUiState.Success) return
-        _state.value = successFor(
-            items = current.items,
-            couponInput = text,
-            coupon = CouponValidationResult.NotApplied,
-            isValidating = false,
-            isRefreshing = current.isRefreshing,
-        )
+        _state.value =
+            successFor(
+                items = current.items,
+                couponInput = text,
+                coupon = CouponValidationResult.NotApplied,
+                isValidating = false,
+                isRefreshing = current.isRefreshing,
+            )
     }
 
     /** "Aplicar": validates the typed code remotely and previews the discount if Valid. */
@@ -121,15 +124,24 @@ class CartViewModel(
         }
 
         when (val existing = current.coupon) {
-            is CouponValidationResult.Valid -> emitNavigate(existing.coupon)
+            is CouponValidationResult.Valid -> {
+                emitNavigate(existing.coupon)
+            }
+
             CouponValidationResult.Invalid,
             CouponValidationResult.Inactive,
             CouponValidationResult.ServiceError,
-            -> Unit // blocked: error message stays visible, no navigation
+            -> {
+                Unit
+            }
 
-            CouponValidationResult.NotApplied -> viewModelScope.launch {
-                val result = validateAndUpdate(code)
-                if (result is CouponValidationResult.Valid) emitNavigate(result.coupon)
+            // blocked: error message stays visible, no navigation
+
+            CouponValidationResult.NotApplied -> {
+                viewModelScope.launch {
+                    val result = validateAndUpdate(code)
+                    if (result is CouponValidationResult.Valid) emitNavigate(result.coupon)
+                }
             }
         }
     }
@@ -142,13 +154,14 @@ class CartViewModel(
         val result = validateCoupon(code)
         val latest = _state.value
         if (latest is CartUiState.Success) {
-            _state.value = successFor(
-                items = latest.items,
-                couponInput = latest.couponInput,
-                coupon = result,
-                isValidating = false,
-                isRefreshing = latest.isRefreshing,
-            )
+            _state.value =
+                successFor(
+                    items = latest.items,
+                    couponInput = latest.couponInput,
+                    coupon = result,
+                    isValidating = false,
+                    isRefreshing = latest.isRefreshing,
+                )
         }
         return result
     }
@@ -171,10 +184,13 @@ class CartViewModel(
         )
     }
 
-    private fun emitNavigate(coupon: Coupon) =
-        emitNavigate(coupon.code, coupon.discountPercentage, coupon.applicableCategory)
+    private fun emitNavigate(coupon: Coupon) = emitNavigate(coupon.code, coupon.discountPercentage, coupon.applicableCategory)
 
-    private fun emitNavigate(code: String, discountPercentage: Double, applicableCategory: String) {
+    private fun emitNavigate(
+        code: String,
+        discountPercentage: Double,
+        applicableCategory: String,
+    ) {
         viewModelScope.launch {
             _events.emit(CartEvent.NavigateToSummary(code, discountPercentage, applicableCategory))
         }
@@ -185,6 +201,15 @@ class CartViewModel(
             val result = repository.refresh()
             if (result.isFailure && _state.value !is CartUiState.Success) {
                 _state.value = CartUiState.Error(CartErrorReason.NoCacheAvailable)
+            } else if (result.isSuccess && _state.value is CartUiState.Loading) {
+                _state.value =
+                    successFor(
+                        items = latestItems,
+                        couponInput = "",
+                        coupon = CouponValidationResult.NotApplied,
+                        isValidating = false,
+                        isRefreshing = false,
+                    )
             }
         }
     }
@@ -192,11 +217,12 @@ class CartViewModel(
     companion object {
         private const val CATEGORY_ALL = "all"
 
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as App
-                CartViewModel(app.container.cartRepository, app.container.validateCoupon)
+        val Factory: ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as App
+                    CartViewModel(app.container.cartRepository, app.container.validateCoupon)
+                }
             }
-        }
     }
 }
