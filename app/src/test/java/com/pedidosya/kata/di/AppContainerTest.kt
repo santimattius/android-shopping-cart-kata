@@ -2,6 +2,7 @@ package com.pedidosya.kata.di
 
 import android.content.Context
 import com.pedidosya.kata.data.repository.CartRepositoryImpl
+import com.pedidosya.kata.data.repository.CouponRepositoryImpl
 import io.mockk.mockk
 import okhttp3.logging.HttpLoggingInterceptor
 import org.junit.Assert.assertEquals
@@ -37,5 +38,24 @@ class AppContainerTest {
         val repository = container.cartRepository
 
         assertTrue(repository is CartRepositoryImpl)
+    }
+
+    @Test
+    fun `DefaultAppContainer exposes a CouponRepositoryImpl wired to the shared Retrofit, with no Room dependency`() {
+        val container: AppContainer = DefaultAppContainer(context)
+
+        val repository = container.couponRepository
+
+        assertTrue(repository is CouponRepositoryImpl)
+    }
+
+    @Test
+    fun `DefaultAppContainer exposes the same lazily-built ValidateCoupon instance on every access`() {
+        val container: AppContainer = DefaultAppContainer(context)
+
+        val first = container.validateCoupon
+        val second = container.validateCoupon
+
+        assertTrue(first === second)
     }
 }

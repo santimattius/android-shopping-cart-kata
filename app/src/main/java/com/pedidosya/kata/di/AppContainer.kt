@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.room.Room
 import com.pedidosya.kata.data.local.KataDatabase
 import com.pedidosya.kata.data.remote.CartApi
+import com.pedidosya.kata.data.remote.CouponApi
 import com.pedidosya.kata.data.repository.CartRepositoryImpl
+import com.pedidosya.kata.data.repository.CouponRepositoryImpl
 import com.pedidosya.kata.domain.repository.CartRepository
+import com.pedidosya.kata.domain.repository.CouponRepository
+import com.pedidosya.kata.domain.usecase.ValidateCoupon
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -16,13 +20,14 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 /**
  * Manual, framework-free dependency graph for the app.
  *
- * [com.pedidosya.kata.domain.repository.CouponRepository] and its remote API are wired here in
- * a later phase (coupons are never cached, so they need no Room wiring).
+ * [couponRepository] never touches Room: coupon validation is always remote, per design.
  */
 interface AppContainer {
     val okHttpClient: OkHttpClient
     val retrofit: Retrofit
     val cartRepository: CartRepository
+    val couponRepository: CouponRepository
+    val validateCoupon: ValidateCoupon
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -58,6 +63,16 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val cartRepository: CartRepository by lazy {
         CartRepositoryImpl(api = cartApi, dao = database.cartItemDao())
+    }
+
+    private val couponApi: CouponApi by lazy { retrofit.create(CouponApi::class.java) }
+
+    override val couponRepository: CouponRepository by lazy {
+        CouponRepositoryImpl(api = couponApi)
+    }
+
+    override val validateCoupon: ValidateCoupon by lazy {
+        ValidateCoupon(repository = couponRepository)
     }
 
     companion object {
