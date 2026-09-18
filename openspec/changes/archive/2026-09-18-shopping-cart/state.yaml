@@ -1,0 +1,109 @@
+# openspec/changes/shopping-cart/state.yaml
+#
+# DERIVED / EXPORTED STATE — this file is a materialization of the live SDD DAG state that has been
+# tracked in Engram (project: kata-mobile-android-empty) throughout this session, not a native
+# orchestrator-written state.yaml. Engram remains the authoritative, live artifact store for this
+# change; this snapshot reflects state as of the sources below and will go stale if Engram is updated
+# without re-exporting. No exact state.yaml content example was found in openspec-convention.md, so
+# this shape follows the convention's documented purpose (DAG state that survives compaction) plus the
+# phase/status/blockers fields implied by the sdd-verify and sdd-tasks skill outputs.
+
+schema: spec-driven-state
+change: shopping-cart
+exported_at: "2026-09-18T19:08:26Z"   # timestamp of the verify-report observation, the most recent phase
+exported_from: engram
+source_of_truth: engram               # Engram is the live/authoritative store; this file is a copy
+
+phases:
+  explore:
+    status: done
+    source: "engram:sdd/shopping-cart/explore#1406"
+
+  proposal:
+    status: done
+    source: "engram:sdd/shopping-cart/proposal#1414"
+
+  specs:
+    status: done
+    source: "engram:sdd/shopping-cart/spec#1415"
+    domains:
+      - cart-list
+      - coupon-validation
+      - purchase-summary
+    note: >
+      Engram stores all three domains concatenated in a single observation with per-domain
+      headers; materialized here into openspec/changes/shopping-cart/specs/{domain}/spec.md
+      per the OpenSpec one-spec-per-domain convention.
+
+  design:
+    status: done
+    source: "engram:sdd/shopping-cart/design#1416"
+
+  tasks:
+    status: done
+    source: "engram:sdd/shopping-cart/tasks#1417"
+    revision: 12
+    total_tasks: 45
+    completed_tasks: 45
+
+  apply:
+    status: done
+    source: "engram:sdd/shopping-cart/apply-progress#1419"
+    revision: 12
+    tests_passing: "43/43"
+    build: "BUILD SUCCESSFUL (assembleDebug)"
+    commits_made_by_apply: false   # user commits manually, per explicit orchestrator instruction
+
+  verify:
+    status: fail
+    source: "engram:sdd/shopping-cart/verify-report#1424"
+    verdict: fail
+    requirements: "6/9"
+    scenarios: "16/21 compliant, 2/21 partial, 3/21 untested"
+    tests_passing: "43/43"
+    build: "BUILD SUCCESSFUL (assembleDebug)"
+    blockers:
+      - id: CRITICAL-1
+        domain: cart-list
+        scenario: "Empty cart"
+        summary: >
+          Untested and, per code inspection, likely broken: CartViewModel's init block only
+          promotes Loading -> Success when items.isNotEmpty() || current is
+          CartUiState.Success (CartViewModel.kt:52). A genuinely empty first-fetch response may
+          never re-emit through Room's Flow (deleteAll+insertAll on an already-empty table
+          triggers no row-level invalidation), leaving the screen stuck on Loading forever
+          instead of rendering the spec-mandated empty-state message with a zero subtotal.
+        evidence: "verify-report.md, Issues Found > CRITICAL #1"
+      - id: CRITICAL-2
+        domain: cart-list
+        scenario: "Cache present, background refresh fails"
+        summary: >
+          Untested: no CartViewModelTest case starts from a populated Success state and then
+          fails a subsequent background repository.refresh() to assert cached items remain and
+          no Error is shown. Code inspection suggests correct behavior but is not proven by a
+          passing covering test.
+        evidence: "verify-report.md, Issues Found > CRITICAL #2"
+      - id: CRITICAL-3
+        domain: cart-list
+        scenario: "First load, no cache, network available"
+        summary: >
+          Untested as its own case: every CartViewModelTest case either starts with cache
+          already present or starts with cache absent AND a failing refresh; the plain
+          "no cache, refresh succeeds, Loading then Success" path independent of retry() has
+          no dedicated assertion.
+        evidence: "verify-report.md, Issues Found > CRITICAL #3"
+    warnings:
+      - "Confirm-time gating: Inactive/ServiceError share Invalid's when-arm but aren't independently tested."
+      - "Apply-time ServiceError has no dedicated CartViewModel-level test (well covered one layer down)."
+      - "design's CartUiState.Success.staleData field was never implemented/assigned as a task (non-blocking, documented)."
+      - "Formal RED/GREEN/TRIANGULATE/REFACTOR table only fully preserved for Phase 8; Phases 0-7 documented in prose."
+    next_action: >
+      Archive is blocked until the 3 CRITICAL findings are resolved: add covering tests for the
+      3 untested cart-list scenarios (and fix the empty-cart defect if reproduced), then re-run
+      sdd-verify.
+
+  archive:
+    status: not_started
+    blocked_by: "verify phase verdict = fail (3 CRITICAL blockers)"
+
+dag_summary: "explore -> proposal -> specs -> design -> tasks -> apply : all done | verify : FAIL (3 CRITICAL) | archive : blocked"
