@@ -1,0 +1,59 @@
+# openspec/config.yaml
+#
+# Materialized from Engram (project: kata-mobile-android-empty, topic: sdd-init/kata-mobile-android-empty,
+# observation #1403) on 2026-09-18. Engram remains the live/authoritative SDD artifact store for this
+# session's "shopping-cart" change; this file is a derived copy for repo-native visibility.
+
+schema: spec-driven
+
+context: |
+  Root: /Users/santiago/Documents/Development/Kata/kata-mobile-android-empty
+  Requirement source: docs/requerimiento.md — Android shopping-cart kata (Kotlin + Jetpack Compose).
+
+  Tech stack (detected from build files, not assumed):
+    - Build system: Gradle Kotlin DSL, single module (rootProject.name = "Kata", include(":app")).
+    - AGP: 8.6.1
+    - Kotlin: 2.0.21
+    - compileSdk / targetSdk: 35, minSdk: 24
+    - Java/Kotlin JVM target: 17
+    - UI: Jetpack Compose (Compose BOM 2025.05.00, Material3 1.3.2, activity-compose 1.10.1)
+    - Other deps at sdd-init time: com.google.android.material:material 1.12.0, androidx.appcompat:appcompat 1.7.0
+    - Package/namespace: com.pedidosya.kata, applicationId com.pedidosya.kata
+
+  Architecture: MVVM presentation + Clean domain/data layering, sealed Event/State types
+  (decided in shopping-cart proposal/design; no framework-level architecture was mandated at sdd-init).
+
+  Testing: at sdd-init time, NO unit-test dependencies were declared (no JUnit, no MockK, no
+  kotlinx-coroutines-test, no Turbine) — only the AGP-default instrumented placeholder existed.
+  Strict TDD Mode was resolved to ENABLED (user's global CLAUDE.md declares "Strict TDD Mode: enabled";
+  single in-scope Gradle module `app`; `./gradlew test` / `testDebugUnitTest` is a workspace-level
+  command covering the whole in-scope project set). Test infra (JUnit4, MockK, kotlinx-coroutines-test,
+  Turbine) was added as the first implementation task of the shopping-cart change.
+
+  Style: no project-level skill directories or convention files found at sdd-init; only user-level
+  skills. Most relevant to this kata per the skill registry (.atl/skill-registry.md): testing-setup,
+  jetpack-compose-m3, styles, work-unit-commits.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams / data-flow diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: true            # Strict TDD Mode: enabled (resolved at sdd-init, project-wide)
+    test_command: "./gradlew :app:testDebugUnitTest"
+  verify:
+    test_command: "./gradlew :app:testDebugUnitTest --rerun-tasks"
+    build_command: "./gradlew :app:assembleDebug"
+    coverage_threshold: 0   # no coverage tool configured in this project (per verify-report)
+  archive:
+    - Warn before merging destructive deltas
