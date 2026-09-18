@@ -3,10 +3,10 @@ package com.pedidosya.kata
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.pedidosya.kata.ui.theme.KataTheme
 
 class MainActivity : AppCompatActivity() {
 
@@ -14,7 +14,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme {
+            KataTheme {
                 Text(
                     text = "Hola! Este es un proyecto de prueba!",
                     fontWeight = FontWeight.Bold,
