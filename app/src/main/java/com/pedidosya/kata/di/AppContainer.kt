@@ -1,6 +1,11 @@
 package com.pedidosya.kata.di
 
 import android.content.Context
+import androidx.room.Room
+import com.pedidosya.kata.data.local.KataDatabase
+import com.pedidosya.kata.data.remote.CartApi
+import com.pedidosya.kata.data.repository.CartRepositoryImpl
+import com.pedidosya.kata.domain.repository.CartRepository
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -11,14 +16,13 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 /**
  * Manual, framework-free dependency graph for the app.
  *
- * Concrete repositories ([com.pedidosya.kata.domain.repository.CartRepository],
- * [com.pedidosya.kata.domain.repository.CouponRepository]) and their remote APIs are wired here
- * in later phases, once the corresponding data-layer classes exist. For now this exposes only
- * the shared networking primitives every future API/repository will build on.
+ * [com.pedidosya.kata.domain.repository.CouponRepository] and its remote API are wired here in
+ * a later phase (coupons are never cached, so they need no Room wiring).
  */
 interface AppContainer {
     val okHttpClient: OkHttpClient
     val retrofit: Retrofit
+    val cartRepository: CartRepository
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -44,8 +48,20 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .build()
     }
 
+    private val cartApi: CartApi by lazy { retrofit.create(CartApi::class.java) }
+
+    private val database: KataDatabase by lazy {
+        Room.databaseBuilder(context, KataDatabase::class.java, DATABASE_NAME)
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    override val cartRepository: CartRepository by lazy {
+        CartRepositoryImpl(api = cartApi, dao = database.cartItemDao())
+    }
+
     companion object {
-        // Placeholder until the real cart/coupon mock endpoints are wired in Phase 3/5.
-        private const val BASE_URL = "https://raw.githubusercontent.com/"
+        private const val BASE_URL = "https://dummyjson.com/"
+        private const val DATABASE_NAME = "kata-cart.db"
     }
 }

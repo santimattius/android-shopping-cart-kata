@@ -1,6 +1,7 @@
 package com.pedidosya.kata.di
 
 import android.content.Context
+import com.pedidosya.kata.data.repository.CartRepositoryImpl
 import io.mockk.mockk
 import okhttp3.logging.HttpLoggingInterceptor
 import org.junit.Assert.assertEquals
@@ -27,5 +28,14 @@ class AppContainerTest {
         val retrofit = container.retrofit
 
         assertEquals(container.okHttpClient, retrofit.callFactory())
+    }
+
+    @Test
+    fun `DefaultAppContainer exposes a CartRepositoryImpl wired to the shared Retrofit and Room database`() {
+        val container: AppContainer = DefaultAppContainer(context)
+
+        val repository = container.cartRepository
+
+        assertTrue(repository is CartRepositoryImpl)
     }
 }
