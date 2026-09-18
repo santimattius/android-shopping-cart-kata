@@ -55,6 +55,7 @@ class CartViewModel(
                         couponInput = (current as? CartUiState.Success)?.couponInput ?: "",
                         coupon = (current as? CartUiState.Success)?.coupon ?: CouponValidationResult.NotApplied,
                         isValidating = (current as? CartUiState.Success)?.isValidating ?: false,
+                        isRefreshing = (current as? CartUiState.Success)?.isRefreshing ?: false,
                     )
                 }
             }
@@ -65,6 +66,25 @@ class CartViewModel(
     /** Re-attempts the fetch; called from the Error state's Retry action. */
     fun retry() = refresh()
 
+    /**
+     * Pull-to-refresh gesture: reuses the same background [CartRepository.refresh] as the
+     * initial load and [retry], toggling [CartUiState.Success.isRefreshing] while it is in
+     * flight. Distinct from [retry], which only applies when no cache is available yet
+     * ([CartUiState.Error]); this only runs from an already-rendered [CartUiState.Success].
+     */
+    fun onRefresh() {
+        val current = _state.value
+        if (current !is CartUiState.Success) return
+        _state.value = current.copy(isRefreshing = true)
+        viewModelScope.launch {
+            repository.refresh()
+            val latest = _state.value
+            if (latest is CartUiState.Success) {
+                _state.value = latest.copy(isRefreshing = false)
+            }
+        }
+    }
+
     /** Updates the typed coupon code; any previous validation result becomes stale. */
     fun onCouponInputChanged(text: String) {
         val current = _state.value
@@ -74,6 +94,7 @@ class CartViewModel(
             couponInput = text,
             coupon = CouponValidationResult.NotApplied,
             isValidating = false,
+            isRefreshing = current.isRefreshing,
         )
     }
 
@@ -126,6 +147,7 @@ class CartViewModel(
                 couponInput = latest.couponInput,
                 coupon = result,
                 isValidating = false,
+                isRefreshing = latest.isRefreshing,
             )
         }
         return result
@@ -136,6 +158,7 @@ class CartViewModel(
         couponInput: String,
         coupon: CouponValidationResult,
         isValidating: Boolean,
+        isRefreshing: Boolean,
     ): CartUiState.Success {
         val activeCoupon = (coupon as? CouponValidationResult.Valid)?.coupon
         return CartUiState.Success(
@@ -144,6 +167,7 @@ class CartViewModel(
             couponInput = couponInput,
             coupon = coupon,
             isValidating = isValidating,
+            isRefreshing = isRefreshing,
         )
     }
 

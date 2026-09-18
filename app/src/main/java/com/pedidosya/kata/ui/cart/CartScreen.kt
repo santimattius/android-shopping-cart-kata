@@ -12,9 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,7 +35,8 @@ import com.pedidosya.kata.domain.model.CouponValidationResult
  *
  * [onNavigateToSummary] is invoked when [CartViewModel.events] emits
  * [CartEvent.NavigateToSummary]; the actual Summary route/screen is wired by the caller
- * (`KataNavHost`, Phase 7). Pull-to-refresh is added in a later, optional phase.
+ * (`KataNavHost`, Phase 7). The item list supports pull-to-refresh, reusing
+ * [CartViewModel.onRefresh] — the same background refresh as the initial load and Retry.
  */
 @Composable
 fun CartScreen(
@@ -56,6 +59,7 @@ fun CartScreen(
         is CartUiState.Error -> ErrorContent(onRetry = viewModel::retry)
         is CartUiState.Success -> CartContent(
             state = current,
+            onRefresh = viewModel::onRefresh,
             onCouponInputChanged = viewModel::onCouponInputChanged,
             onApplyCoupon = viewModel::onApplyCoupon,
             onConfirmPurchase = viewModel::onConfirmPurchase,
@@ -82,21 +86,29 @@ private fun ErrorContent(onRetry: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CartContent(
     state: CartUiState.Success,
+    onRefresh: () -> Unit,
     onCouponInputChanged: (String) -> Unit,
     onApplyCoupon: () -> Unit,
     onConfirmPurchase: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        if (state.items.isEmpty()) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                Text(text = "Tu carrito está vacío.", modifier = Modifier.align(Alignment.Center))
-            }
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                items(items = state.items, key = { it.id }) { item -> CartItemRow(item) }
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) {
+            if (state.items.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(text = "Tu carrito está vacío.", modifier = Modifier.align(Alignment.Center))
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(items = state.items, key = { it.id }) { item -> CartItemRow(item) }
+                }
             }
         }
         CouponSection(
