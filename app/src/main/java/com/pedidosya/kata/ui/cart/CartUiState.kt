@@ -1,13 +1,11 @@
 package com.pedidosya.kata.ui.cart
 
 import com.pedidosya.kata.domain.model.CartItem
+import com.pedidosya.kata.domain.model.CartTotals
+import com.pedidosya.kata.domain.model.CouponValidationResult
 
 /**
  * Closed render state for the cart screen, per `sdd/shopping-cart/design`.
- *
- * `Success.canConfirm` is a placeholder until coupon state is wired (Phase 6): with no coupon
- * typed, the cart is always confirmable. It will grow real branching once [CartViewModel]
- * combines coupon validation into this state.
  */
 sealed interface CartUiState {
 
@@ -15,8 +13,28 @@ sealed interface CartUiState {
 
     data class Error(val reason: CartErrorReason) : CartUiState
 
-    data class Success(val items: List<CartItem>) : CartUiState {
-        val canConfirm: Boolean get() = true
+    /**
+     * @property totals live preview of [CalculateTotals][com.pedidosya.kata.domain.usecase.CalculateTotals]
+     * for [items] and, when [coupon] is [CouponValidationResult.Valid], its discount.
+     * @property couponInput the text currently typed in the coupon field.
+     * @property coupon the outcome of the last "Aplicar" validation, or [CouponValidationResult.NotApplied].
+     * @property isValidating true while an "Aplicar"/"Confirmar" remote validation is in flight.
+     */
+    data class Success(
+        val items: List<CartItem>,
+        val totals: CartTotals,
+        val couponInput: String = "",
+        val coupon: CouponValidationResult = CouponValidationResult.NotApplied,
+        val isValidating: Boolean = false,
+    ) : CartUiState {
+        /**
+         * Confirm gating per `sdd/shopping-cart/spec`: an empty field with no lingering Valid
+         * result bypasses validation; a Valid result always confirms; any other non-blank,
+         * non-Valid state (Invalid/Inactive/ServiceError/NotApplied-with-text) blocks confirm.
+         */
+        val canConfirm: Boolean get() =
+            (couponInput.isBlank() && coupon !is CouponValidationResult.Valid) ||
+                coupon is CouponValidationResult.Valid
     }
 }
 
