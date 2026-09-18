@@ -19,6 +19,8 @@ sealed interface CartUiState {
      * @property couponInput the text currently typed in the coupon field.
      * @property coupon the outcome of the last "Aplicar" validation, or [CouponValidationResult.NotApplied].
      * @property isValidating true while an "Aplicar"/"Confirmar" remote validation is in flight.
+     * @property isRefreshing true while a manual pull-to-refresh gesture's background refresh is
+     * in flight (distinct from [isValidating], which tracks coupon validation).
      */
     data class Success(
         val items: List<CartItem>,
@@ -26,6 +28,7 @@ sealed interface CartUiState {
         val couponInput: String = "",
         val coupon: CouponValidationResult = CouponValidationResult.NotApplied,
         val isValidating: Boolean = false,
+        val isRefreshing: Boolean = false,
     ) : CartUiState {
         /**
          * Confirm gating per `sdd/shopping-cart/spec`: an empty field with no lingering Valid

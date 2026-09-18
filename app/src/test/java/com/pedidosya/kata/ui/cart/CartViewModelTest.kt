@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -257,6 +258,39 @@ class CartViewModelTest {
         val finalState = viewModel.state.value as CartUiState.Success
         assertFalse(finalState.canConfirm)
     }
+
+    @Test
+    fun `manual refresh sets isRefreshing while in flight and clears it once the background refresh completes`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cartItems = listOf(item(id = "p1"))
+            val cartFlow = MutableStateFlow(cartItems)
+            every { repository.observeCart() } returns cartFlow
+            var refreshCalls = 0
+            val refreshGate = CompletableDeferred<Unit>()
+            coEvery { repository.refresh() } coAnswers {
+                refreshCalls++
+                if (refreshCalls > 1) refreshGate.await()
+                Result.success(Unit)
+            }
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                val initial = awaitItem() as CartUiState.Success
+                assertFalse(initial.isRefreshing)
+
+                viewModel.onRefresh()
+
+                val refreshing = awaitItem() as CartUiState.Success
+                assertTrue(refreshing.isRefreshing)
+
+                refreshGate.complete(Unit)
+
+                val done = awaitItem() as CartUiState.Success
+                assertFalse(done.isRefreshing)
+            }
+            coVerify(exactly = 2) { repository.refresh() }
+        }
 
     private fun withReadyCart(items: List<CartItem>) {
         val cartFlow = MutableStateFlow(items)
