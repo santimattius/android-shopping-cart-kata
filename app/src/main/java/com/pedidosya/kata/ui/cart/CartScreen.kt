@@ -48,22 +48,50 @@ fun CartScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is CartEvent.NavigateToSummary ->
+                is CartEvent.NavigateToSummary -> {
                     onNavigateToSummary(event.code, event.discountPercentage, event.applicableCategory)
+                }
             }
         }
     }
 
+    CartScreen(
+        state = state,
+        onRetry = viewModel::retry,
+        onRefresh = viewModel::onRefresh,
+        onCouponInputChanged = viewModel::onCouponInputChanged,
+        onApplyCoupon = viewModel::onApplyCoupon,
+        onConfirmPurchase = viewModel::onConfirmPurchase,
+    )
+}
+
+@Composable
+internal fun CartScreen(
+    state: CartUiState,
+    onRetry: () -> Unit,
+    onRefresh: () -> Unit,
+    onCouponInputChanged: (String) -> Unit,
+    onApplyCoupon: () -> Unit,
+    onConfirmPurchase: () -> Unit,
+) {
     when (val current = state) {
-        CartUiState.Loading -> LoadingContent()
-        is CartUiState.Error -> ErrorContent(onRetry = viewModel::retry)
-        is CartUiState.Success -> CartContent(
-            state = current,
-            onRefresh = viewModel::onRefresh,
-            onCouponInputChanged = viewModel::onCouponInputChanged,
-            onApplyCoupon = viewModel::onApplyCoupon,
-            onConfirmPurchase = viewModel::onConfirmPurchase,
-        )
+        CartUiState.Loading -> {
+            LoadingContent()
+        }
+
+        is CartUiState.Error -> {
+            ErrorContent(onRetry = onRetry)
+        }
+
+        is CartUiState.Success -> {
+            CartContent(
+                state = current,
+                onRefresh = onRefresh,
+                onCouponInputChanged = onCouponInputChanged,
+                onApplyCoupon = onApplyCoupon,
+                onConfirmPurchase = onConfirmPurchase,
+            )
+        }
     }
 }
 
@@ -174,15 +202,32 @@ private fun CouponSection(
  * specific error message for Invalid/Inactive/ServiceError, or nothing for [CouponValidationResult.NotApplied].
  */
 @Composable
-private fun CouponStatusMessage(coupon: CouponValidationResult, totals: CartTotals) {
-    val message = when (coupon) {
-        CouponValidationResult.NotApplied -> null
-        is CouponValidationResult.Valid ->
-            "Cupón aplicado: ${coupon.coupon.discountPercentage}% off. Nuevo total: ${totals.total}"
-        CouponValidationResult.Invalid -> "El código ingresado no es válido."
-        CouponValidationResult.Inactive -> "Este cupón ya no está activo."
-        CouponValidationResult.ServiceError -> "No pudimos validar el cupón. Intentá de nuevo."
-    }
+private fun CouponStatusMessage(
+    coupon: CouponValidationResult,
+    totals: CartTotals,
+) {
+    val message =
+        when (coupon) {
+            CouponValidationResult.NotApplied -> {
+                null
+            }
+
+            is CouponValidationResult.Valid -> {
+                "Cupón aplicado: ${coupon.coupon.discountPercentage}% off. Nuevo total: ${totals.total}"
+            }
+
+            CouponValidationResult.Invalid -> {
+                "El código ingresado no es válido."
+            }
+
+            CouponValidationResult.Inactive -> {
+                "Este cupón ya no está activo."
+            }
+
+            CouponValidationResult.ServiceError -> {
+                "No pudimos validar el cupón. Intentá de nuevo."
+            }
+        }
     if (message != null) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = message, style = MaterialTheme.typography.bodySmall)

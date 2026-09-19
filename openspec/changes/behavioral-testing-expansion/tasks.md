@@ -3,7 +3,7 @@
 ## Review Workload Forecast
 
 | Field | Value |
-|-------|-------|
+| ------- | ------- |
 | Estimated changed lines | ~380-460 (2 prod files, 3 new/modified test files, 2 gradle files, 1 deletion) |
 | 400-line budget risk | High |
 | Chained PRs recommended | Yes |
@@ -19,7 +19,7 @@ Chain strategy: stacked-to-main
 ### Suggested Work Units
 
 | Unit | Goal | PR | Focused test command | Runtime harness | Rollback boundary |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | Robolectric/Compose infra + canary | PR1 | `./gradlew :app:testDebugUnitTest --tests "*ComposeHarnessSmokeTest"` | Robolectric JVM unit test, no device | Revertable alone; independent of all other units |
 | 2 | Delete `ExampleInstrumentedTest` | PR2 | `./gradlew :app:assembleDebug` (androidTest no longer compiles into the build) | N/A — deletion only, no runtime harness | Revertable alone; independent |
 | 3 | Container/presentational split | PR3 | `./gradlew :app:testDebugUnitTest --tests "*CartScreenTest"` | Robolectric JVM unit test | Revert requires reverting PR4 first (PR4 depends on the split) |
@@ -46,11 +46,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Unit 2 — Container/Presentational Split
 
-- [ ] 3.1 RED: in new `app/src/test/java/com/pedidosya/kata/ui/cart/CartScreenTest.kt`, write the Loading test (design's Test List item 1) calling `internal fun CartScreen(state, ...)`; confirm compile failure (unresolved overload).
-- [ ] 3.2 GREEN: add the `internal` stateless `CartScreen(state: CartUiState, onRetry, onRefresh, onCouponInputChanged, onApplyCoupon, onConfirmPurchase)` overload to `app/src/main/java/com/pedidosya/kata/ui/cart/CartScreen.kt`, moving the existing `when (state)` dispatch (Loading/Error/Success) verbatim; public wrapper keeps `collectAsStateWithLifecycle()`/`LaunchedEffect`, delegates.
-- [ ] 3.3 Add the `internal` stateless `SummaryScreen(state: SummaryUiState)` overload to `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryScreen.kt`, moving its `when (state)` dispatch verbatim; wrapper keeps `collectAsStateWithLifecycle()`, delegates.
-- [ ] 3.4 Confirm the Loading test passes; run `./gradlew :app:assembleDebug` and the 20 existing ViewModel tests unchanged.
-- [ ] 3.5 Confirm `git diff` on both files shows only movement/delegation — no changed literal, predicate, modifier, or branch.
+- [x] 3.1 RED: in new `app/src/test/java/com/pedidosya/kata/ui/cart/CartScreenTest.kt`, wrote the Loading test (design's Test List item 1) calling `internal fun CartScreen(state, ...)`; confirmed compile failure before the overload existed.
+- [x] 3.2 GREEN: added the `internal` stateless `CartScreen(state: CartUiState, onRetry, onRefresh, onCouponInputChanged, onApplyCoupon, onConfirmPurchase)` overload to `app/src/main/java/com/pedidosya/kata/ui/cart/CartScreen.kt`, moving the existing `when (state)` dispatch (Loading/Error/Success); public wrapper retains `collectAsStateWithLifecycle()`/`LaunchedEffect` and delegates.
+- [x] 3.3 Added the `internal` stateless `SummaryScreen(state: SummaryUiState)` overload to `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryScreen.kt`, moving its `when (state)` dispatch; wrapper retains `collectAsStateWithLifecycle()` and delegates.
+- [x] 3.4 Confirmed the Loading test passes; ran `./gradlew :app:assembleDebug` and the 20 existing ViewModel tests unchanged.
+- [x] 3.5 Confirmed `git diff` on both files shows only movement/delegation — no changed literal, predicate, modifier, or branch.
 
 ## Phase 4: Unit 3 — 18-Test Compose Behavior Suite
 
