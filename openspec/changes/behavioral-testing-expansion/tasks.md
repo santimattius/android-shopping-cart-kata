@@ -54,11 +54,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Unit 3 — 18-Test Compose Behavior Suite
 
-- [ ] 4.1 Write `CartScreenTest.kt` items 2-14 per design.md's Test List (Error rendering + retry, Success list content, empty-cart rendering, Apply/Confirm enablement from `isValidating`/`canConfirm`, coupon-input callback, all 5 `CouponStatusMessage` branches, `isRefreshing` smoke).
-- [ ] 4.2 Write item 14 (`performTouchInput { swipeDown() }` triggers `onRefresh`) last. Bounded fallback: one debugging attempt if non-deterministic; if still flaky, delete it, keep item 13, and record "pull-to-refresh gesture assertion deferred to instrumented testing" in the verify report — do not add a production `testTag`.
-- [ ] 4.3 Write `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryScreenTest.kt` items 15-18 per design.md (Loading, Success + item rows/total, discount row at 15.0%, "Sin cupón aplicado" at 0.0%).
-- [ ] 4.4 RED-by-inversion on every new test in 4.1-4.3: invert the assertion once, confirm it fails, restore the correct assertion, confirm it passes.
-- [ ] 4.5 Run `./gradlew :app:testDebugUnitTest --tests "*CartScreenTest" --tests "*SummaryScreenTest"`; all green.
+- [x] 4.1 Write `CartScreenTest.kt` items 2-14 per design.md's Test List (Error rendering + retry, Success list content, empty-cart rendering, Apply/Confirm enablement from `isValidating`/`canConfirm`, coupon-input callback, all 5 `CouponStatusMessage` branches, `isRefreshing` smoke).
+- [x] 4.2 Write item 14 (`performTouchInput { swipeDown() }` triggers `onRefresh`) last. Bounded fallback: one debugging attempt if non-deterministic; if still flaky, delete it, keep item 13, and record "pull-to-refresh gesture assertion deferred to instrumented testing" in the verify report — do not add a production `testTag`. **Completed:** the initial item-text target did not trigger refresh; the one permitted debugging attempt retargeted the gesture to `onNode(hasScrollAction())` (the `LazyColumn` semantics node), which passed. No deferral or production `testTag` was needed.
+- [x] 4.3 Write `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryScreenTest.kt` items 15-18 per design.md (Loading, Success + item rows/total, discount row at 15.0%, "Sin cupón aplicado" at 0.0%).
+- [x] 4.4 RED-by-inversion on every new test in 4.1-4.3: invert the assertion once, confirm it fails, restore the correct assertion, confirm it passes.
+- [x] 4.5 Run `./gradlew :app:testDebugUnitTest --tests "*CartScreenTest" --tests "*SummaryScreenTest"`; all green.
 
 ## Phase 5: Unit 4 — Dispatcher/Scheduler Fix
 
