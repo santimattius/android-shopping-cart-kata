@@ -29,6 +29,11 @@ import com.pedidosya.kata.domain.model.CartItem
 fun SummaryScreen(viewModel: SummaryViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    SummaryScreen(state = state)
+}
+
+@Composable
+internal fun SummaryScreen(state: SummaryUiState) {
     when (val current = state) {
         SummaryUiState.Loading -> LoadingContent()
         is SummaryUiState.Success -> SummaryContent(current)
@@ -69,10 +74,11 @@ private fun SummaryItemRow(item: CartItem) {
 /** Shows the coupon's nominal % when a discount was applied, or an explicit "no coupon" line. */
 @Composable
 private fun DiscountRow(nominalPercentage: Double) {
-    val text = if (nominalPercentage > 0.0) {
-        "Descuento aplicado: ${nominalPercentage}%"
-    } else {
-        "Sin cupón aplicado"
-    }
+    val text =
+        if (nominalPercentage > 0.0) {
+            "Descuento aplicado: $nominalPercentage%"
+        } else {
+            "Sin cupón aplicado"
+        }
     Text(text = text, style = MaterialTheme.typography.bodyMedium)
 }
