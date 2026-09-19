@@ -1,7 +1,7 @@
 # Apply Progress: Compose Stability Audit
 
 **Change**: compose-stability-audit
-**Mode**: Standard (no artificial behavioral test; RED/GREEN evidence is a compiler stability report per design)
+**Mode**: Standard (no artificial behavioral test; historical compiler reports establish stability, while PR17-FIX-1 uses focused compiler/build regression evidence)
 **Batch**: 1 (single batch, all 22 tasks complete)
 **Branch**: `refactor/compose-stability-audit`, based on `refactor/viewmodel-state-and-concurrency` (PR #16, unmerged)
 
@@ -50,7 +50,7 @@ Zero `@Immutable`/`@Stable` annotations added anywhere in the diff (confirmed vi
 
 ## TDD / Evidence Notes
 
-Strict TDD is active project-wide, but per design and tasks Notes, this change adds no behavior — no synthetic behavioral RED test was written. The RED→GREEN cycle is the baseline-vs-post-fix compiler report above; Phase 6's existing 20-test suite is the regression gate, not the proof of the change.
+Strict TDD is active project-wide, but PR17-FIX-1 adds no behavior — no synthetic behavioral RED test is written. The baseline-vs-post-fix compiler reports above are historical stability evidence; the correction's focused report, existing 49-test suite, and build are regression evidence, not runtime recomposition measurement.
 
 ## Completed Tasks
 
@@ -65,7 +65,7 @@ Strict TDD is active project-wide, but per design and tasks Notes, this change a
 - [x] 3.3 Resolved `0.3.8` cleanly against Kotlin 2.0.21 via `:app:dependencies --configuration releaseRuntimeClasspath` — no version bump needed
 - [x] 4.1 `CartUiState.Success.items` → `ImmutableList<CartItem>`
 - [x] 4.2 `SummaryUiState.Success.items` → `ImmutableList<CartItem>`
-- [x] 4.3 One `.toImmutableList()` in `CartViewModel.reduce(...)`
+- [x] 4.3 Corrected by PR17-FIX-1: one `.toImmutableList()` in the repository flow before `combine`; `reduce(...)` accepts `ImmutableList<CartItem>`
 - [x] 4.4 One `.toImmutableList()` in `SummaryViewModel`'s `map { }`
 - [x] 4.5 `CartViewModelTest.kt`: 9 positional `Success(...)` fixtures converted to `persistentListOf(...)`/`persistentListOf()`; zero assertions changed
 - [x] 4.6 Confirmed `SummaryViewModelTest.kt` needs zero edits (file read; verified)
@@ -85,7 +85,7 @@ Strict TDD is active project-wide, but per design and tasks Notes, this change a
 | `gradle/libs.versions.toml` | Modified | Added `kotlinxCollectionsImmutable = "0.3.8"` version + library entry |
 | `app/src/main/java/com/pedidosya/kata/ui/cart/CartUiState.kt` | Modified | `Success.items`: `List<CartItem>` → `ImmutableList<CartItem>` |
 | `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryUiState.kt` | Modified | `Success.items`: `List<CartItem>` → `ImmutableList<CartItem>` |
-| `app/src/main/java/com/pedidosya/kata/ui/cart/CartViewModel.kt` | Modified | One `.toImmutableList()` at `Success(...)` construction |
+| `app/src/main/java/com/pedidosya/kata/ui/cart/CartViewModel.kt` | Modified | One `.toImmutableList()` in the repository flow before `combine`; `reduce(...)` accepts `ImmutableList<CartItem>` |
 | `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryViewModel.kt` | Modified | One `.toImmutableList()` at `Success(...)` construction |
 | `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt` | Modified | 9 fixture sites converted to `persistentListOf`; no assertion changes |
 | `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryViewModelTest.kt` | Unchanged | Confirmed zero edits needed |
@@ -93,7 +93,7 @@ Strict TDD is active project-wide, but per design and tasks Notes, this change a
 
 ## Deviations from Design
 
-None — implementation matches design. Only clarification: task 4.5 described "~8" fixture sites; the actual count was 9 (`CartUiState.Success(...)` constructor call sites), consistent with the design's estimate.
+PR17-FIX-1 corrects the Cart conversion placement from `reduce(...)` to the repository-flow side before `combine`, avoiding reconversion on local `inputs` emissions. It also records that both public `Success` constructors intentionally narrow `List<CartItem>` to `ImmutableList<CartItem>` as an application-module source contract; no compatibility factory or stability annotation is added. Task 4.5 described "~8" fixture sites; the actual count was 9 (`CartUiState.Success(...)` constructor call sites), consistent with the design's estimate.
 
 ## Issues Found
 
@@ -108,4 +108,4 @@ None — all 22 tasks complete.
 - Mode: single PR (per Review Workload Forecast: Low risk, no chaining needed)
 - Current work unit: both suggested units (1: compiler wiring + baseline; 2: ImmutableList migration + fixtures + post-fix evidence) — both completed in this single batch, left as two logically separable, uncommitted diffs for the orchestrator to commit/PR
 - Boundary: starts at branch creation from `refactor/viewmodel-state-and-concurrency`, ends at Phase 6 regression pass
-- Estimated review budget impact: within the ~120-180 line forecast; actual diff is ~109 lines changed across 7 files (excluding pre-existing unrelated working-tree changes to `MainActivity.kt`/`KataNavHost.kt`/`.atl/*`/`.gitignore` that predate this change and were not touched by this apply)
+- Estimated review budget impact: within the ~120-180 line forecast; PR17-FIX-1 adds the Cart boundary-placement and evidence correction. Compiler stability is classification evidence only: Strong Skipping uses `equals` for stable parameters and identity for unstable parameters when Compose evaluates an observed update, while equal `StateFlow` emissions are conflated before Compose observes them.

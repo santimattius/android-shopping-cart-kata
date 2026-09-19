@@ -25,7 +25,7 @@ generated goldens. Well under the 400-line budget as a single PR.
 | Unit | Goal | Likely PR | Focused test command | Runtime harness | Rollback boundary |
 |------|------|-----------|----------------------|-----------------|-------------------|
 | 1 | Compiler-report wiring + baseline evidence | PR 1 (single PR, commit 1) | `./gradlew :app:compileReleaseKotlin -PcomposeReports=true --rerun-tasks` | N/A — build-tooling only, no runtime scenario | Revert `app/build.gradle.kts` block; removes opt-in report only |
-| 2 | `ImmutableList` migration + fixtures + post-fix evidence | PR 1 (single PR, commit 2) | `./gradlew :app:testDebugUnitTest` | N/A — non-functional refactor, no user-observable scenario to exercise | Revert commit 2; restores `List` + identity-comparison recomposition |
+| 2 | `ImmutableList` migration + fixtures + post-fix evidence | PR 1 (single PR, commit 2) | `./gradlew :app:testDebugUnitTest` | N/A — non-functional refactor, no user-observable scenario to exercise | Revert commit 2; restores the prior `List` source contract without claiming a measured recomposition change |
 
 ## Phase 0: Prerequisite
 
@@ -52,7 +52,7 @@ generated goldens. Well under the 400-line budget as a single PR.
 
 - [x] 4.1 Change `items` in `CartUiState.Success` (`app/src/main/java/com/pedidosya/kata/ui/cart/CartUiState.kt`) from `List<CartItem>` to `kotlinx.collections.immutable.ImmutableList<CartItem>`.
 - [x] 4.2 Change `items` in `SummaryUiState.Success` (`app/src/main/java/com/pedidosya/kata/ui/summary/SummaryUiState.kt`) from `List<CartItem>` to `ImmutableList<CartItem>`.
-- [x] 4.3 In `CartViewModel.kt`, add exactly one `.toImmutableList()` call inside the `reduce(...)` function at the `Success(...)` construction site. Do not touch `CartRepository`, `CalculateTotals`, mappers, or the DAO.
+- [x] 4.3 In `CartViewModel.kt`, map `observeCart()` items with exactly one `.toImmutableList()` call before `combine`, and make `reduce(...)` accept `ImmutableList<CartItem>`. Do not touch `CartRepository`, `CalculateTotals`, mappers, or the DAO.
 - [x] 4.4 In `SummaryViewModel.kt`, add exactly one `.toImmutableList()` call in the `map { }` block that builds `Success` (around line 50 per design). Do not touch upstream sources.
 - [x] 4.5 Update `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt`: convert the 9 positional `CartUiState.Success(...)` fixtures (variable- and literal-backed) to `persistentListOf(...)` / `persistentListOf()` (import `kotlinx.collections.immutable.persistentListOf`). Do not change any assertion.
 - [x] 4.6 Confirm `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryViewModelTest.kt` needs zero edits (it never constructs `Success` directly; `assertEquals(items, success.items)` holds under `List` structural equality). Read the file to verify this before skipping it. CONFIRMED — file read, zero edits made.
@@ -72,11 +72,10 @@ generated goldens. Well under the 400-line budget as a single PR.
 
 ## Notes for sdd-apply
 
-- **No artificial behavioral RED test.** Strict TDD is enabled project-wide, but this change adds
-  no behavior. The RED→GREEN cycle here is Phase 2 (baseline compiler report, unstable) versus
-  Phase 5 (post-fix compiler report, stable) — a non-functional evidence pair, not a failing unit
-  test. Do not write a synthetic test asserting recomposition counts or `Success` stability;
-  Phase 6's existing suite is a regression gate, not the proof of this change.
+- **No artificial behavioral RED test.** Strict TDD is enabled project-wide, but PR17-FIX-1 adds
+  no behavior. Do not write a synthetic test asserting recomposition counts or `Success` stability.
+  The original baseline/post-fix reports are historical stability evidence, not a manufactured RED
+  for this correction; the focused report, existing suite, and build are the regression evidence.
 - **Branch base is not `main`.** Phase 0 is a hard prerequisite: this change stacks on the
   unmerged `refactor/viewmodel-state-and-concurrency` (PR #16), where `CartViewModel` already
   produces state via `combine(...).stateIn(...)`. Starting from `main` will apply the migration
@@ -84,3 +83,8 @@ generated goldens. Well under the 400-line budget as a single PR.
 - **Phase 2.2 is an early gate, not an afterthought.** If baseline evidence shows `CartItem`
   itself is unstable, stop before Phase 3 — `ImmutableList<CartItem>` cannot be stable if its
   element type isn't, and the whole plan needs re-proposing.
+- **Post-review correction.** Stability classification is not a measured recomposition result.
+  With Strong Skipping, stable parameters use `equals` and unstable parameters use identity when
+  Compose evaluates a received update; equal `StateFlow` emissions are conflated before Compose
+  observes them. The public `Success` constructor narrowing is intentional and source-level within
+  this application module; no compatibility factories or stability annotations are added.

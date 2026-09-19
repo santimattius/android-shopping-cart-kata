@@ -7,7 +7,7 @@
 
 ## Summary
 
-The `compose-stability-audit` change has been fully implemented, independently verified, and archived. This is a pure non-functional type-level refactor that narrows `CartUiState.Success.items` and `SummaryUiState.Success.items` from `kotlin.collections.List<CartItem>` to `kotlinx.collections.immutable.ImmutableList<CartItem>`, enabling the Compose compiler to infer both `Success` classes as `stable` and to mark dependent composables (`CartContent`, `CouponSection`, `SummaryContent`) as skippable. No user-observable behavior changes; no delta spec required.
+The `compose-stability-audit` change has been fully implemented, independently verified, and archived. This is a pure non-functional type-level refactor that narrows `CartUiState.Success.items` and `SummaryUiState.Success.items` from `kotlin.collections.List<CartItem>` to `kotlinx.collections.immutable.ImmutableList<CartItem>`, enabling the Compose compiler to infer both `Success` classes as `stable`. PR17-FIX-1 corrects Cart conversion placement to the repository-flow side before `combine` and corrects the evidence language: compiler classification and Strong Skipping semantics do not measure runtime recomposition. No user-observable behavior changes; no delta spec required.
 
 ## Artifact Traceability
 
@@ -82,7 +82,7 @@ Per `verify-report` (#1451):
 | `app/build.gradle.kts` | Modified | Added gated `composeCompiler` reports block + dependency |
 | `app/src/main/java/com/pedidosya/kata/ui/cart/CartUiState.kt` | Modified | `items: ImmutableList<CartItem>` |
 | `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryUiState.kt` | Modified | `items: ImmutableList<CartItem>` |
-| `app/src/main/java/com/pedidosya/kata/ui/cart/CartViewModel.kt` | Modified | One `.toImmutableList()` in `reduce(...)` |
+| `app/src/main/java/com/pedidosya/kata/ui/cart/CartViewModel.kt` | Modified | One `.toImmutableList()` on the repository flow before `combine`; `reduce(...)` accepts `ImmutableList<CartItem>` |
 | `app/src/main/java/com/pedidosya/kata/ui/summary/SummaryViewModel.kt` | Modified | One `.toImmutableList()` in `map { }` |
 | `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt` | Modified | 9 fixture constructors converted to `persistentListOf(...)` |
 | `CartScreen.kt`, `SummaryScreen.kt`, domain/data layers, `SummaryViewModelTest.kt` | Unchanged | Verified via git diff |
@@ -103,7 +103,7 @@ Per `verify-report` (#1451):
 **Commit**: `refactor(ui): hold cart items as ImmutableList in UI state`  
 **Tasks**: 3.1–3.3, 4.1–4.7, 5.1–5.4, 6.1–6.2  
 **Verification**: Post-fix `classes.txt` shows both `Success` stable; full test suite passes; `assembleDebug` succeeds.  
-**Rollback**: Revert this commit alone to restore `List` + identity-comparison recomposition behavior.
+**Rollback**: Revert this commit alone to restore the prior `List` constructor contract and Cart conversion placement; it does not imply a measured recomposition change.
 
 Both commits remain uncommitted in the working tree (per orchestrator instruction); the orchestrator will handle commit/PR work.
 
@@ -124,8 +124,25 @@ Both commits remain uncommitted in the working tree (per orchestrator instructio
 Per design Migration/Rollout (unchanged from proposal):
 
 - **Revert commit 1 (wiring)** alone: removes opt-in report; migration persists with no cascade.
-- **Revert commit 2 (migration)** alone: restores `List` + identity-comparison recomposition behavior; wiring persists but is unused.
+- **Revert commit 2 (migration)** alone: restores the prior `List` constructor contract and Cart conversion placement; wiring persists but is unused.
 - **Revert both** in any order: nothing is persisted, no public ViewModel/navigation contract changes. Drop `libs.versions.toml` entry if (2) reverted alone leaves dependency unused (harmless).
+
+## Post-Review Learning and Evidence
+
+PR17-FIX-1 corrects a claim, not a measured performance result. Under Strong Skipping, unstable
+parameters compare by identity and stable parameters compare by `equals` when Compose evaluates
+an observed update. Equal `StateFlow` emissions are conflated before Compose observes them, so a
+structurally equal Room emission does not necessarily force recomposition. The public `Success`
+constructor parameters intentionally narrow from `List<CartItem>` to `ImmutableList<CartItem>` as
+a source-level contract change inside this application module; no compatibility factories or
+stability annotations are added.
+
+**Validated matrix (PR17-FIX-1):** Kotlin/Compose compiler 2.0.21; BOM 2025.05.00 resolving
+runtime/foundation/UI 1.8.1; Material3 1.3.2; immutable collections 0.3.8; StrongSkipping true.
+Fresh PR17-FIX-1 validation: `./gradlew :app:compileReleaseKotlin -PcomposeReports=true --rerun-tasks`,
+`./gradlew :app:testDebugUnitTest --rerun-tasks`, and `./gradlew :app:assembleDebug` all completed
+with BUILD SUCCESSFUL. The compiler report confirms `CartItem` and both `Success` classes are
+stable. This is compiler classification evidence, not a runtime recomposition measurement.
 
 ## Source of Truth Updated
 

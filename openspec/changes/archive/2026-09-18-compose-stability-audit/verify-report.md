@@ -92,13 +92,27 @@ structural equality holds under the new type) confirmed.
 ## 5. Behavior-Relevant Diff Review (spec "no delta" re-check)
 
 Read full diffs of `CartUiState.kt`, `SummaryUiState.kt`, `CartViewModel.kt`, `SummaryViewModel.kt`
-against base directly (not the spec phase's summary). Each file's diff is exactly:
-- One import added (`ImmutableList` or `toImmutableList`).
-- One type narrowing (`List<CartItem>` → `ImmutableList<CartItem>`) in the state class, or
-- One `.toImmutableList()` call at the single `Success(...)` construction site.
+against base directly (not the spec phase's summary). The original verification recorded a
+`.toImmutableList()` call at the Cart `Success(...)` construction site; PR17-FIX-1 supersedes
+that placement by mapping repository items before `combine` and having `reduce(...)` accept
+`ImmutableList<CartItem>`. The state-class narrowing remains `List<CartItem>` →
+`ImmutableList<CartItem>`.
 
-No control-flow, branching, calculation, or contract change in either ViewModel. Confirms the
-spec phase's "no delta spec needed" verdict independently — not merely trusted.
+No control-flow or calculation changes are introduced. The public `Success` constructor
+parameters intentionally narrow as a source-level contract change within this application module;
+constructor callers must supply `ImmutableList`, while read sites remain compatible. No
+compatibility factory or stability annotation is added. This continues to support the spec phase's
+"no delta spec needed" verdict, independently of any runtime-performance claim.
+
+## 5A. Post-Review Evidence Correction
+
+The original report's compiler findings remain valid stability classification: `CartItem` and both
+`Success` classes are stable. They do **not** measure a recomposition count or prove a runtime
+improvement. With Strong Skipping, unstable parameters compare by identity and stable parameters
+by `equals` when Compose evaluates an update it receives; equal output `StateFlow` emissions are
+conflated before Compose observes them. A structurally equal Room emission therefore does not
+necessarily force recomposition. PR17-FIX-1 revalidates this distinction with compiler reports and
+regression checks only.
 
 ## 6. Fresh Test Run
 
@@ -140,7 +154,7 @@ was honored; zero new stability annotations anywhere.
 `tasks.md`: **22/22 checked**, 0 unchecked (`grep -c '^\- \[x\]'` = 22, `'^\- \[ \]'` = 0).
 Spot-checked against code directly (not apply's checkmarks alone):
 - 4.1/4.2 (state class type narrowing) — confirmed in CartUiState.kt/SummaryUiState.kt reads.
-- 4.3/4.4 (single `.toImmutableList()` conversion point each) — confirmed in §5 diff review.
+- 4.3/4.4 (one Cart conversion before `combine`, one Summary conversion at state construction) — confirmed by PR17-FIX-1's focused compiler report and source review.
 - 4.5 (9 fixture sites converted) — confirmed in CartViewModelTest.kt read (§6).
 - 5.2/5.4 (post-fix stable + zero annotations) — confirmed independently in §1/§8.
 - 6.1/6.2 (regression + build green) — confirmed independently in §6/§7.
