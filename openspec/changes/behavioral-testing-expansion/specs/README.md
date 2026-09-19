@@ -4,9 +4,9 @@
 
 ## Verdict
 
-No delta spec was written against `cart-list`, `coupon-validation`, or `purchase-summary`. This
-change adds test infrastructure and a container/presentational seam with no user-observable
-behavior difference and no scenario to add, modify, remove, or rename.
+No capability delta exists for `cart-list`, `coupon-validation`, or `purchase-summary`. No-op delta
+manifests are materialized under each domain so the native status engine can recognize the completed
+spec phase without adding, modifying, removing, or renaming any requirement or scenario.
 
 ## Verification
 
@@ -57,5 +57,5 @@ The proposal's "Capabilities" section already declares both New and Modified Cap
 
 ## Conclusion
 
-This change has no spec-level surface. Proceed directly to `sdd-design` (or `sdd-tasks` if design
-is already covered by the proposal's Approach/Affected Areas table) without a delta spec artifact.
+This change has no spec-level surface. The three domain `spec.md` files record that no-delta outcome
+in the OpenSpec shape required by the native status engine; they do not alter canonical behavior.
