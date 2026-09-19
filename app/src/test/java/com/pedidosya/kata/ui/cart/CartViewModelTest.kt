@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,8 +40,8 @@ class CartViewModelTest {
     @Test
     fun `cache present renders Success immediately then a silent background refresh updates it`() =
         runTest(UnconfinedTestDispatcher()) {
-            val cachedItems = listOf(item(id = "p1"))
-            val refreshedItems = listOf(item(id = "p1"), item(id = "p2"))
+            val cachedItems = persistentListOf(item(id = "p1"))
+            val refreshedItems = persistentListOf(item(id = "p1"), item(id = "p2"))
             val cartFlow = MutableStateFlow(cachedItems)
             every { repository.observeCart() } returns cartFlow
             coEvery { repository.refresh() } returns Result.success(Unit)
@@ -78,7 +79,7 @@ class CartViewModelTest {
                 refreshGate.complete(Result.success(Unit))
 
                 assertEquals(
-                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    CartUiState.Success(persistentListOf(), calculateTotals(emptyList(), null)),
                     awaitItem(),
                 )
             }
@@ -88,7 +89,7 @@ class CartViewModelTest {
     fun `first load without cache and a successful refresh transitions Loading to item Success`() =
         runTest(UnconfinedTestDispatcher()) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
-            val refreshedItems = listOf(item(id = "p1"))
+            val refreshedItems = persistentListOf(item(id = "p1"))
             val refreshGate = CompletableDeferred<Unit>()
             every { repository.observeCart() } returns cartFlow
             coEvery { repository.refresh() } coAnswers {
@@ -128,7 +129,7 @@ class CartViewModelTest {
     @Test
     fun `cache remains visible when the automatic background refresh fails`() =
         runTest(UnconfinedTestDispatcher()) {
-            val cachedItems = listOf(item(id = "p1"))
+            val cachedItems = persistentListOf(item(id = "p1"))
             every { repository.observeCart() } returns MutableStateFlow(cachedItems)
             coEvery { repository.refresh() } returns Result.failure(IOException("offline"))
 
@@ -164,10 +165,10 @@ class CartViewModelTest {
                 // (loadPhase flips to Loaded before the cart flow emits the populated list) —
                 // a consequence of Decision 1's total combine().stateIn() reduction, not a
                 // behavior change; the populated Success below is still the terminal state.
-                assertEquals(CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)), awaitItem())
+                assertEquals(CartUiState.Success(persistentListOf(), calculateTotals(emptyList(), null)), awaitItem())
                 cartFlow.value = listOf(item(id = "p1"))
 
-                val expectedItems = listOf(item(id = "p1"))
+                val expectedItems = persistentListOf(item(id = "p1"))
                 assertEquals(
                     CartUiState.Success(expectedItems, calculateTotals(expectedItems, null)),
                     awaitItem(),
@@ -191,7 +192,7 @@ class CartViewModelTest {
                 viewModel.retry()
 
                 assertEquals(
-                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    CartUiState.Success(persistentListOf(), calculateTotals(emptyList(), null)),
                     awaitItem(),
                 )
             }
@@ -233,7 +234,7 @@ class CartViewModelTest {
                 val afterFailedRefresh = awaitItem() as CartUiState.Success
                 assertFalse(afterFailedRefresh.isRefreshing)
                 assertEquals(
-                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    CartUiState.Success(persistentListOf(), calculateTotals(emptyList(), null)),
                     afterFailedRefresh,
                 )
             }
