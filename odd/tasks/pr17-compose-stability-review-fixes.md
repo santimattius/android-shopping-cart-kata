@@ -41,7 +41,7 @@ Reviewers should be able to distinguish compiler-proven stability from measured 
 
 ## Tasks
 
-- [ ] **PR17-FIX-1 — Correct implementation and evidence**
+- [x] **PR17-FIX-1 — Correct implementation and evidence**
   - Route: delegated writer (multi-file write trigger).
   - Move Cart immutable conversion before `combine`; preserve behavior and state equality.
   - Correct proposal/design/apply/verify/archive claims that structurally equal Room emissions necessarily force recomposition.
@@ -63,9 +63,12 @@ Reviewers should be able to distinguish compiler-proven stability from measured 
 
 ## Progress
 
-- Audit complete at PR head `391fdcf`.
+- Audit completed at original PR head `391fdcf`.
 - Official android-cli documentation consulted for strong skipping and immutable collections.
-- Baseline validation: 49/49 tests passed; `assembleDebug` passed; compiler reports confirm stable states.
+- Baseline validation: 49/49 tests passed; `assembleDebug` passed; compiler reports confirmed stable states.
+- Correction commit `cd964af` moved Cart conversion before `combine` and corrected the archived evidence.
+- PR #17 body was updated with version-specific evidence and the learning argument.
+- Educational evidence comment published: `https://github.com/santimattius/android-shopping-cart-kata/pull/17#issuecomment-5742847927`.
 
 ## Verification Evidence
 
@@ -77,4 +80,4 @@ Reviewers should be able to distinguish compiler-proven stability from measured 
 
 ## Next Step
 
-Parent: review the bounded diff, then make the work-unit commit and decide whether to update PR #17. The main checkbox remains unchecked because commit, push, and PR publication are parent-owned.
+Await PR review. Any claim of reduced recomposition still requires a measured runtime transition; the current work intentionally claims only compiler classification and corrected conversion placement.
