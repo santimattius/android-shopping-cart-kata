@@ -28,15 +28,15 @@ Chain strategy: stacked-to-main
 
 ## Phase 0: Prerequisite
 
-- [ ] 0.1 Confirm the working branch stacks on `refactor/compose-stability-audit` (not `main`); create/checkout from it if not already current.
+- [x] 0.1 Confirm the working branch stacks on `refactor/compose-stability-audit` (not `main`); create/checkout from it if not already current.
 
 ## Phase 1: Unit 1 — Robolectric/Compose Test Infrastructure
 
-- [ ] 1.1 Add `robolectric = "4.14.1"` version + `robolectric` library entry, and `androidx-ui-test-manifest` (BOM-versioned, no `version.ref`) to `gradle/libs.versions.toml`.
-- [ ] 1.2 In `app/build.gradle.kts`: add `testOptions { unitTests { isIncludeAndroidResources = true } }`; add `debugImplementation(libs.androidx.ui.test.manifest)`, `testImplementation(platform(libs.androidx.compose.bom))`, `testImplementation(libs.androidx.ui.test.junit4)`, `testImplementation(libs.robolectric)`.
-- [ ] 1.3 RED: create `app/src/test/java/com/pedidosya/kata/ui/ComposeHarnessSmokeTest.kt` (renders/asserts `"compose-harness-ready"`); confirm it fails/errors before 1.1/1.2 land.
-- [ ] 1.4 GREEN: run the canary until it passes under `./gradlew :app:testDebugUnitTest`. If it fails, escalate Robolectric `4.14.1 → 4.15.1 → 4.16` and/or add `app/src/test/resources/robolectric.properties` (`sdk=34`) per design's bounded procedure; a failure outside that range is a blocker to report, not to keep guessing at.
-- [ ] 1.5 Do not start Phase 4 until 1.4 is green. Keep the canary permanently (harness/UI failure separator).
+- [x] 1.1 Add `robolectric = "4.14.1"` version + `robolectric` library entry, and `androidx-ui-test-manifest` (BOM-versioned, no `version.ref`) to `gradle/libs.versions.toml`.
+- [x] 1.2 In `app/build.gradle.kts`: add `testOptions { unitTests { isIncludeAndroidResources = true } }`; add `debugImplementation(libs.androidx.ui.test.manifest)`, `testImplementation(platform(libs.androidx.compose.bom))`, `testImplementation(libs.androidx.ui.test.junit4)`, `testImplementation(libs.robolectric)`.
+- [x] 1.3 RED: create `app/src/test/java/com/pedidosya/kata/ui/ComposeHarnessSmokeTest.kt` (renders/asserts `"compose-harness-ready"`); confirm it fails/errors before 1.1/1.2 land.
+- [x] 1.4 GREEN: run the canary until it passes under `./gradlew :app:testDebugUnitTest`. If it fails, escalate Robolectric `4.14.1 → 4.15.1 → 4.16` and/or add `app/src/test/resources/robolectric.properties` (`sdk=34`) per design's bounded procedure; a failure outside that range is a blocker to report, not to keep guessing at.
+- [x] 1.5 Do not start Phase 4 until 1.4 is green. Keep the canary permanently (harness/UI failure separator).
 
 ## Phase 2: Unit 5 — Delete `ExampleInstrumentedTest`
 
