@@ -45,7 +45,6 @@ private fun LoadingContent() {
 @Composable
 private fun SummaryContent(state: SummaryUiState.Success) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "Resumen de compra", style = MaterialTheme.typography.titleLarge)
         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
             items(items = state.items, key = { it.id }) { item -> SummaryItemRow(item) }
         }

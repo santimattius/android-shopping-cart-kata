@@ -24,3 +24,7 @@ local.properties
 # Keystore files
 *.jks
 *.keystore
+# Local Pi runtime state
+.atl/
+.pi
+.atl
