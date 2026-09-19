@@ -221,3 +221,96 @@ actual `LazyColumn` scroll semantics node; no fallback/deferment was necessary.
 
 Phase 5 (Unit 4 — shared `TestCoroutineScheduler`) only, on the next stacked branch/PR5; then
 Phase 6 final regression. This PR4 batch must not absorb either phase.
+
+## Unit 4 / PR5 Evidence (this batch)
+
+### Completed Tasks
+
+- [x] **5.1** Exposed `MainDispatcherRule.testDispatcher` as a public `val`; its default remains
+  `UnconfinedTestDispatcher()` and `starting`/`finished` keep setting/resetting `Dispatchers.Main`.
+- [x] **5.2** Replaced all 17 Cart `runTest(UnconfinedTestDispatcher())` calls with
+  `runTest(mainDispatcherRule.testDispatcher)` and removed the unused import.
+- [x] **5.3** Made the corresponding three Summary replacements and removed its unused import.
+- [x] **5.4** Ran both focused ViewModel classes successfully. A source-to-PR4 mechanical comparison
+  proves every pre-existing assertion and all non-scheduler source bytes are unchanged.
+
+| Evidence | Value |
+| --- | --- |
+| Focused test command and exact result | `python3 /Users/santiago/.pi/agent/skills/gradle-run/scripts/gradle_run.py run --workflow 60907a48d0f2085acfc7f4f452d03175 --scope targeted --question "Do the 17 CartViewModel and 3 SummaryViewModel tests still pass after restoring byte-identical assertion formatting?" -- ./gradlew :app:testDebugUnitTest --tests "*CartViewModelTest" --tests "*SummaryViewModelTest"` → `BUILD SUCCESSFUL` in 1s; 29 actionable tasks, 1 executed, 28 up-to-date. JUnit XML: CartViewModelTest 17/0/0/0; SummaryViewModelTest 3/0/0/0 (tests/failures/errors/skipped). |
+| Strict-TDD safety check | No manufactured RED: design.md classifies this unit as behavior-preserving mechanical work. After the focused GREEN run, a PR4 (`a0307f9`) source comparison restored each substituted `runTest` argument and deleted import, then matched both test files byte-for-byte; 17 Cart plus 3 Summary shared-dispatcher sites remain and no test-file `UnconfinedTestDispatcher` usage remains. |
+| Runtime harness | JUnit4 + Turbine JVM unit tests; no device/emulator or Robolectric UI harness is applicable to this scheduler-only unit. |
+| Diff / assertion check | `git diff --check` passed. Implementation diff is 21 additions + 22 deletions (43 changed lines): one visibility change, twenty invocation substitutions, and two imports removed. |
+| Rollback boundary | Revert `MainDispatcherRule.kt`, `CartViewModelTest.kt`, and `SummaryViewModelTest.kt` only. No production, Compose UI, Gradle, navigation, or Phase 6 files are coupled to this unit. |
+| PR boundary / workload | Stacked-to-main PR5 (`feat/behavioral-testing-expansion-05-shared-scheduler`) exactly atop PR4 commit `a0307f9`; Phase 5 only, 43 authored implementation changed lines, within the 400-line budget. No commit, push, staging, or PR creation was performed. |
+
+## TDD Cycle Evidence (Strict TDD Mode — Unit 4 / PR5)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 5.1-5.3 | `MainDispatcherRule.kt`, `CartViewModelTest.kt`, `SummaryViewModelTest.kt` | JUnit4 + Turbine unit tests | 20 pre-existing ViewModel tests | ➖ Not manufactured: design.md explicitly classifies this as behavior-preserving mechanical work with no RED. | ✅ All 20 focused tests pass using the rule-owned dispatcher. | ➖ N/A — no new behavior or additional case exists to triangulate. | ✅ Removed duplicate dispatcher construction/imports; mechanical PR4 comparison preserved every assertion. |
+| 5.4 | Cart + Summary ViewModel test classes | JUnit4 + Turbine unit tests | 17 Cart + 3 Summary existing assertions | ➖ Verification-only task; no RED permitted by the design. | ✅ Focused Gradle run and JUnit XML report 20/0/0/0. | ➖ N/A | ✅ `git diff --check` and byte-preservation comparison passed. |
+
+## Files Changed (Unit 4 / PR5 batch)
+
+- `app/src/test/java/com/pedidosya/kata/core/MainDispatcherRule.kt` — exposes the rule-owned
+  `TestDispatcher`.
+- `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt` — 17 shared-scheduler
+  `runTest` sites; obsolete dispatcher import removed.
+- `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryViewModelTest.kt` — 3 shared-scheduler
+  `runTest` sites; obsolete dispatcher import removed.
+- `openspec/changes/behavioral-testing-expansion/tasks.md` — marks only Phase 5 tasks complete.
+- `openspec/changes/behavioral-testing-expansion/apply-progress.md` — appends this cumulative Unit 4
+  evidence.
+
+## Deviations from Design (Unit 4 / PR5 batch)
+
+None. Phase 6 final regression was not started.
+
+## Remaining Tasks / Next Batch
+
+Only Phase 6 (Final Regression, tasks 6.1-6.3) remains. It is intentionally out of scope for this
+PR5 batch.
+
+## Phase 6: Final Regression — DONE (current batch)
+
+### Completed Tasks
+
+- [x] **6.1** `./gradlew :app:testDebugUnitTest --rerun-tasks` was `BUILD SUCCESSFUL` in 18s;
+  29 actionable tasks executed. JUnit XML reports 12 suites and **68 tests, 0 failures, 0 errors,
+  0 skipped**. Required coverage within that total: `ComposeHarnessSmokeTest` 1/0/0/0,
+  `CartScreenTest` 14/0/0/0, `SummaryScreenTest` 4/0/0/0, `CartViewModelTest` 17/0/0/0, and
+  `SummaryViewModelTest` 3/0/0/0 (tests/failures/errors/skipped).
+- [x] **6.2** `./gradlew :app:assembleDebug` was `BUILD SUCCESSFUL` in 1s; 37 actionable tasks,
+  3 executed and 34 up-to-date.
+- [x] **6.3** Static source check observed `app/src/androidTest/` absent and
+  `androidTestImplementation_declaration_count=0` in `app/build.gradle.kts`.
+
+### Final Regression Evidence
+
+| Check | Exact command | Result |
+| --- | --- | --- |
+| Full unit suite | `./gradlew :app:testDebugUnitTest --rerun-tasks` | BUILD SUCCESSFUL; 18s; 29 actionable tasks executed; JUnit XML aggregate 68/0/0/0 (tests/failures/errors/skipped). |
+| Debug assemble | `./gradlew :app:assembleDebug` | BUILD SUCCESSFUL; 1s; 37 actionable tasks (3 executed, 34 up-to-date). |
+| Instrumented-test removal | `test -e app/src/androidTest` plus `grep -c 'androidTestImplementation' app/build.gradle.kts` | Directory absent; declaration count 0. |
+
+Both Gradle commands ran through the required `gradle_run.py` workflow
+`96d01ead4e37518b111cbcf44100c5f2`, which was finished after the final check.
+
+## TDD Cycle Evidence (Strict TDD Mode — Phase 6)
+
+| Task | Layer | RED | GREEN | TRIANGULATE | REFACTOR |
+| --- | --- | --- | --- | --- | --- |
+| 6.1-6.3 | Final regression / static cleanup check | ➖ No production or assertion change is assigned; manufacturing a RED would violate the task scope. | ✅ Full rerun suite and debug assembly passed; static cleanup check found no `androidTest` source or declaration. | ➖ Aggregate regression task; its required canary, 18 Compose, and 20 ViewModel paths all passed within the 68-test suite. | ➖ No refactor assigned or performed. |
+
+## Phase 6 Files Changed
+
+- `openspec/changes/behavioral-testing-expansion/tasks.md` — marked 6.1-6.3 complete after their checks passed.
+- `openspec/changes/behavioral-testing-expansion/apply-progress.md` — appended final-regression evidence.
+
+## Phase 6 Deviations, Remaining Work, and Boundary
+
+- **Deviations:** None.
+- **Remaining apply tasks:** None; all 26 tasks are complete.
+- **Workload / PR boundary:** This batch is regression evidence and OpenSpec bookkeeping only on
+  `feat/behavioral-testing-expansion-05-shared-scheduler`, preserving the existing stacked-to-main
+  delivery. No code was changed, staged, committed, pushed, or submitted for review.

@@ -62,13 +62,13 @@ Chain strategy: stacked-to-main
 
 ## Phase 5: Unit 4 — Dispatcher/Scheduler Fix
 
-- [ ] 5.1 In `app/src/test/java/com/pedidosya/kata/core/MainDispatcherRule.kt`, change `private val testDispatcher` to `val testDispatcher`.
-- [ ] 5.2 Update all 17 `runTest(...)` call sites in `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt` to `runTest(mainDispatcherRule.testDispatcher)`; remove the now-unused `UnconfinedTestDispatcher` import.
-- [ ] 5.3 Update all 3 `runTest(...)` call sites in `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryViewModelTest.kt` the same way; remove the now-unused import.
-- [ ] 5.4 Run both updated test files; assertions must stay byte-identical to before this change. A newly red test is a finding to report, never an assertion to adjust.
+- [x] 5.1 In `app/src/test/java/com/pedidosya/kata/core/MainDispatcherRule.kt`, changed `private val testDispatcher` to `val testDispatcher`.
+- [x] 5.2 Updated all 17 `runTest(...)` call sites in `app/src/test/java/com/pedidosya/kata/ui/cart/CartViewModelTest.kt` to `runTest(mainDispatcherRule.testDispatcher)`; removed the now-unused `UnconfinedTestDispatcher` import.
+- [x] 5.3 Updated all 3 `runTest(...)` call sites in `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryViewModelTest.kt` the same way; removed the now-unused import.
+- [x] 5.4 Ran both updated test files successfully; assertions were mechanically verified byte-identical to PR4 except for the specified `runTest` argument substitutions and import removals. No newly red test occurred.
 
 ## Phase 6: Final Regression
 
-- [ ] 6.1 Run `./gradlew :app:testDebugUnitTest --rerun-tasks`; the canary, all 18 Compose tests, and the 20 ViewModel tests are green.
-- [ ] 6.2 Run `./gradlew :app:assembleDebug`; green.
-- [ ] 6.3 Confirm `app/src/androidTest/` no longer exists and no `androidTestImplementation` declaration remains anywhere in `app/build.gradle.kts`.
+- [x] 6.1 Run `./gradlew :app:testDebugUnitTest --rerun-tasks`; the canary, all 18 Compose tests, and the 20 ViewModel tests are green.
+- [x] 6.2 Run `./gradlew :app:assembleDebug`; green.
+- [x] 6.3 Confirm `app/src/androidTest/` no longer exists and no `androidTestImplementation` declaration remains anywhere in `app/build.gradle.kts`.
