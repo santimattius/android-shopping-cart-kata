@@ -1,7 +1,9 @@
 package com.pedidosya.kata.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,8 +19,9 @@ import com.pedidosya.kata.ui.summary.SummaryViewModel
  * `sdd/shopping-cart/design`.
  */
 @Composable
-fun KataNavHost() {
-    val navController = rememberNavController()
+fun KataNavHost(
+    navController: NavHostController = rememberNavController(),
+) {
     NavHost(navController = navController, startDestination = Routes.CART) {
         composable(Routes.CART) {
             CartScreen(

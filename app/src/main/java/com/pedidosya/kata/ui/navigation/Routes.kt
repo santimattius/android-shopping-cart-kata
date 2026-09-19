@@ -20,4 +20,11 @@ object Routes {
     /** Builds a navigable Summary destination from [CartEvent.NavigateToSummary][com.pedidosya.kata.ui.cart.CartEvent.NavigateToSummary]'s payload. */
     fun summary(code: String, discountPercentage: Double, applicableCategory: String): String =
         "summary?code=${Uri.encode(code)}&pct=$discountPercentage&category=${Uri.encode(applicableCategory)}"
+
+    /** Screen title for the TopAppBar, keyed by the registered route pattern (not the built destination). */
+    fun titleFor(route: String?): String = when (route) {
+        CART -> "Carrito"
+        SUMMARY -> "Resumen de compra"
+        else -> ""
+    }
 }
