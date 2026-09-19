@@ -9,7 +9,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -32,7 +31,7 @@ class SummaryViewModelTest {
 
     @Test
     fun `with a valid applied coupon it shows the discounted total and the nominal percentage`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val items = listOf(item(id = "p1", category = "technology", price = 100.0))
             every { repository.observeCart() } returns MutableStateFlow(items)
 
@@ -60,7 +59,7 @@ class SummaryViewModelTest {
 
     @Test
     fun `with no coupon code it shows the full total and zero percentage`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val items = listOf(item(id = "p1", category = "technology", price = 100.0))
             every { repository.observeCart() } returns MutableStateFlow(items)
 
@@ -81,7 +80,7 @@ class SummaryViewModelTest {
 
     @Test
     fun `a coupon whose category does not match any item discounts nothing despite having a code`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val items = listOf(item(id = "p1", category = "grocery", price = 50.0))
             every { repository.observeCart() } returns MutableStateFlow(items)
 

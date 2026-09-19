@@ -17,7 +17,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,7 +38,7 @@ class CartViewModelTest {
 
     @Test
     fun `cache present renders Success immediately then a silent background refresh updates it`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cachedItems = persistentListOf(item(id = "p1"))
             val refreshedItems = persistentListOf(item(id = "p1"), item(id = "p2"))
             val cartFlow = MutableStateFlow(cachedItems)
@@ -65,7 +64,7 @@ class CartViewModelTest {
 
     @Test
     fun `first load without cache and a successful empty refresh transitions Loading to Success`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
             val refreshGate = CompletableDeferred<Result<Unit>>()
             every { repository.observeCart() } returns cartFlow
@@ -87,7 +86,7 @@ class CartViewModelTest {
 
     @Test
     fun `first load without cache and a successful refresh transitions Loading to item Success`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
             val refreshedItems = persistentListOf(item(id = "p1"))
             val refreshGate = CompletableDeferred<Unit>()
@@ -114,7 +113,7 @@ class CartViewModelTest {
 
     @Test
     fun `first load without cache and a failed refresh renders Error`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
             every { repository.observeCart() } returns cartFlow
             coEvery { repository.refresh() } returns Result.failure(IOException("offline"))
@@ -128,7 +127,7 @@ class CartViewModelTest {
 
     @Test
     fun `cache remains visible when the automatic background refresh fails`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cachedItems = persistentListOf(item(id = "p1"))
             every { repository.observeCart() } returns MutableStateFlow(cachedItems)
             coEvery { repository.refresh() } returns Result.failure(IOException("offline"))
@@ -147,7 +146,7 @@ class CartViewModelTest {
 
     @Test
     fun `retry after an error calls refresh again and succeeds once the cache is populated`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
             every { repository.observeCart() } returns cartFlow
             coEvery { repository.refresh() } returnsMany listOf(
@@ -179,7 +178,7 @@ class CartViewModelTest {
 
     @Test
     fun `a successful retry with an empty cart leaves Error for an empty Success`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             every { repository.observeCart() } returns MutableStateFlow(emptyList())
             coEvery { repository.refresh() } returnsMany
                 listOf(Result.failure(IOException("offline")), Result.success(Unit))
@@ -200,7 +199,7 @@ class CartViewModelTest {
 
     @Test
     fun `a failed manual refresh on an already-loaded empty cart keeps Success instead of demoting to Error`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
             every { repository.observeCart() } returns cartFlow
             var refreshCalls = 0
@@ -243,7 +242,7 @@ class CartViewModelTest {
 
     @Test
     fun `applying a valid coupon updates the preview with the nominal percentage and discounted total`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1", category = "technology"))
             val coupon = Coupon(
                 code = "TECH15",
@@ -273,7 +272,7 @@ class CartViewModelTest {
         }
 
     @Test
-    fun `applying an invalid coupon shows the Invalid state and blocks confirm`() = runTest(UnconfinedTestDispatcher()) {
+    fun `applying an invalid coupon shows the Invalid state and blocks confirm`() = runTest(mainDispatcherRule.testDispatcher) {
         val cartItems = listOf(item(id = "p1"))
         withReadyCart(cartItems)
         coEvery { couponRepository.validate("NOPE") } returns CouponValidationResult.Invalid
@@ -293,7 +292,7 @@ class CartViewModelTest {
     }
 
     @Test
-    fun `applying an inactive coupon shows the Inactive state and blocks confirm`() = runTest(UnconfinedTestDispatcher()) {
+    fun `applying an inactive coupon shows the Inactive state and blocks confirm`() = runTest(mainDispatcherRule.testDispatcher) {
         val cartItems = listOf(item(id = "p1"))
         withReadyCart(cartItems)
         coEvery { couponRepository.validate("OLD10") } returns CouponValidationResult.Inactive
@@ -315,7 +314,7 @@ class CartViewModelTest {
 
     @Test
     fun `confirming with an empty coupon field does not call the coupon service and emits 0 percent`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1"))
             withReadyCart(cartItems)
 
@@ -331,7 +330,7 @@ class CartViewModelTest {
 
     @Test
     fun `a navigate event survives a gap before any collector attaches`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1"))
             withReadyCart(cartItems)
 
@@ -345,7 +344,7 @@ class CartViewModelTest {
 
     @Test
     fun `confirming with an already-applied valid coupon reuses it without a new remote call`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1", category = "technology"))
             val coupon = Coupon(
                 code = "TECH15",
@@ -370,7 +369,7 @@ class CartViewModelTest {
 
     @Test
     fun `confirming with a typed but never-applied code validates remotely then emits navigate`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1", category = "technology"))
             val coupon = Coupon(
                 code = "TECH15",
@@ -398,7 +397,7 @@ class CartViewModelTest {
         }
 
     @Test
-    fun `confirming with an invalid or errored coupon blocks navigation`() = runTest(UnconfinedTestDispatcher()) {
+    fun `confirming with an invalid or errored coupon blocks navigation`() = runTest(mainDispatcherRule.testDispatcher) {
         val cartItems = listOf(item(id = "p1"))
         withReadyCart(cartItems)
         coEvery { couponRepository.validate("NOPE") } returns CouponValidationResult.Invalid
@@ -422,7 +421,7 @@ class CartViewModelTest {
 
     @Test
     fun `manual refresh sets isRefreshing while in flight and clears it once the background refresh completes`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runTest(mainDispatcherRule.testDispatcher) {
             val cartItems = listOf(item(id = "p1"))
             val cartFlow = MutableStateFlow(cartItems)
             every { repository.observeCart() } returns cartFlow
