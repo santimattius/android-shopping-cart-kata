@@ -76,7 +76,25 @@
       Cart and Summary wrappers now delegate to internal stateless overloads; focused UI,
       assemble, and 20 unchanged ViewModel tests are green; structural diff inspected.
 
-### Phase 4 (Unit 3 — 18-test Compose behavior suite): NOT STARTED — separate batch/PR4
+### Phase 4: Unit 3 — 18-Test Compose Behavior Suite — DONE (PR4 batch)
+
+- [x] 4.1 Added Cart test-list items 2-14: error/retry, populated and empty cart rendering,
+      Apply/Confirm enablement and callbacks, controlled coupon input, all five coupon outcomes,
+      `isRefreshing` item rendering, and pull-to-refresh callback wiring.
+- [x] 4.2 Wrote item 14 last. Its initial gesture on the item text produced `onRefresh = 0`;
+      the one permitted debugging attempt targeted the actual `LazyColumn` semantics node with
+      `onNode(hasScrollAction()).performTouchInput { swipeDown() }`, then passed exactly once.
+      No production `testTag`, deferral, or instrumented-test fallback was introduced.
+- [x] 4.3 Added Summary test-list items 15-18: Loading, Success title/item rows/total,
+      `15.0%` discount text, and `0.0%` no-coupon text.
+- [x] 4.4 RED-by-inversion completed for every 16 non-gesture characterization test and the
+      gesture test. The valid non-gesture inversion run produced 12/12 newly added Cart failures
+      (the pre-existing Loading test stayed green) and 4/4 Summary failures; gesture inversion
+      failed after the LazyColumn-targeted gesture had proved green. Correct expectations were
+      restored before the focused green run.
+- [x] 4.5 Focused Phase 4 command passed: `./gradlew :app:testDebugUnitTest --tests
+      "*CartScreenTest" --tests "*SummaryScreenTest"`. JUnit XML reports CartScreenTest
+      14/0/0/0 and SummaryScreenTest 4/0/0/0 (tests/failures/errors/skipped).
 
 ### Phase 5 (Unit 4 — dispatcher/scheduler fix): NOT STARTED — separate batch/PR5
 
@@ -159,6 +177,47 @@ rationale. No other issues found; Unit 1's regression baseline (50/50 tests) is 
 
 None. Phase 4, Phase 5, and final regression were not started.
 
-## Next Batch
+## Unit 3 / PR4 Evidence (this batch)
 
-Phase 4 (Unit 3, Compose behavior suite) or Phase 5 (Unit 4, dispatcher/scheduler fix) on the next stacked branch. This batch does not commit; changes remain for the orchestrator to commit/PR.
+| Evidence | Value |
+| --- | --- |
+| Safety net | Before edits, `./gradlew :app:testDebugUnitTest --tests "*CartScreenTest"` was BUILD SUCCESSFUL (the pre-existing Loading seam test). `SummaryScreenTest.kt` is new, so no prior-file baseline applies. |
+| RED-by-inversion | Initial test imports used non-existent top-level Compose test APIs and failed compilation; imports were corrected without production edits. The valid inversion run then failed 12/12 new Cart methods and 4/4 Summary methods while the pre-existing Loading test passed. After the one permitted gesture debugging attempt proved `onNode(hasScrollAction())` green, its inverted `refreshes == 0` assertion failed as expected. |
+| GREEN focused command and exact result | `python3 /Users/santiago/.pi/agent/skills/gradle-run/scripts/gradle_run.py run --workflow 9fddbd863867c661bda13dd13109436a --scope targeted --question "Do all Phase 4 CartScreen and SummaryScreen Compose behavior tests pass?" -- ./gradlew :app:testDebugUnitTest --tests "*CartScreenTest" --tests "*SummaryScreenTest"` → BUILD SUCCESSFUL; 29 actionable tasks, 3 executed. JUnit XML: CartScreenTest 14/0/0/0; SummaryScreenTest 4/0/0/0 (tests/failures/errors/skipped). |
+| Runtime harness | Robolectric JVM Compose UI tests: the focused green command above exercised each state-driven screen and callback. No device/emulator harness is required or in this unit's scope. |
+| REFACTOR | Kept tests presentational and deterministic: shared controlled-state render helper, captured callbacks, and semantic text/enabled assertions. The coupon outcome test retains one composition and drives `mutableStateOf` through each result branch; `git diff --check` passed. |
+| Rollback boundary | Delete `CartScreenTest.kt` additions and `SummaryScreenTest.kt`; no production, Gradle, navigation, or ViewModel files are in this PR4 unit. This leaves PR3's stateless seams and Unit 1's harness unused but intact. |
+| PR boundary / workload | Stacked-to-main PR4 (`feat/behavioral-testing-expansion-04-compose-tests`) exactly atop PR3 commit `5cfbece`; Phase 4 only. No commit, push, staging, or PR creation was performed. Phase 5 and Phase 6 were not started. |
+
+## TDD Cycle Evidence (Strict TDD Mode — Unit 3 / PR4)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 4.1, 4.3, 4.4 | `app/src/test/java/com/pedidosya/kata/ui/cart/CartScreenTest.kt`, `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryScreenTest.kt` | Robolectric Compose UI | Cart Loading 1/1 green; Summary N/A (new) | ✅ Inverted every non-gesture characterization assertion; valid run failed all 12 new Cart methods and all 4 Summary methods | ✅ Restored expectations; focused suite green | ✅ Success/empty, enabled/disabled, all five coupon branches, and positive/zero discount states exercise alternate branches | ✅ Test-only helper/state refactor; focused suite remained green |
+| 4.2, 4.4 | `app/src/test/java/com/pedidosya/kata/ui/cart/CartScreenTest.kt` | Robolectric Compose UI gesture | Prior items 2-13 green | ✅ Inverted callback count failed after gesture proof | ✅ `hasScrollAction()` list target invokes refresh once | ✅ Initial text-node target observed zero calls; one permitted list-node debugging attempt exercised the actual scroll surface and passed | ➖ No production refactor or tag added |
+| 4.5 | Both Phase 4 test files | Robolectric Compose UI | Items 2-18 green individually | ➖ Verification task; RED covered by 4.4 | ✅ 18/0/0/0 focused tests | ➖ Aggregate verification, no new behavior | ✅ `git diff --check` passed |
+
+### Unit 3 Test Summary
+
+- **Tests written:** 17 new Compose characterization methods (13 Cart additions plus 4 Summary), with the existing Cart Loading method completing the 18-test Phase 4 suite.
+- **Focused tests passing:** 18/18 (Cart 14, Summary 4); 0 failures, 0 errors, 0 skipped.
+- **Layer:** Robolectric-backed Compose UI tests only; no mocks, production changes, or pure functions.
+- **Approval tests:** None — Phase 4 adds characterization coverage only.
+- **Environment note:** KSP intermittently reported `lookups.tab is already registered` after source edits. `./gradlew --stop` stopped stale daemons before reruns; the final focused verification passed. This is not a product-test failure.
+
+## Files Changed (Unit 3 / PR4 batch)
+
+- `app/src/test/java/com/pedidosya/kata/ui/cart/CartScreenTest.kt` — adds items 2-14 and deterministic helpers.
+- `app/src/test/java/com/pedidosya/kata/ui/summary/SummaryScreenTest.kt` — adds items 15-18.
+- `openspec/changes/behavioral-testing-expansion/tasks.md` — marks only Phase 4 tasks complete.
+- `openspec/changes/behavioral-testing-expansion/apply-progress.md` — appends Phase 4 evidence.
+
+## Deviations from Design (Unit 3 / PR4 batch)
+
+None. The permitted gesture debugging attempt changed only the test selector from item text to the
+actual `LazyColumn` scroll semantics node; no fallback/deferment was necessary.
+
+## Remaining Tasks / Next Batch
+
+Phase 5 (Unit 4 — shared `TestCoroutineScheduler`) only, on the next stacked branch/PR5; then
+Phase 6 final regression. This PR4 batch must not absorb either phase.
