@@ -160,12 +160,81 @@ class CartViewModelTest {
                 assertEquals(CartUiState.Error(CartErrorReason.NoCacheAvailable), awaitItem())
 
                 viewModel.retry()
+                // retry() alone now resolves the reduction to an intermediate empty Success
+                // (loadPhase flips to Loaded before the cart flow emits the populated list) —
+                // a consequence of Decision 1's total combine().stateIn() reduction, not a
+                // behavior change; the populated Success below is still the terminal state.
+                assertEquals(CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)), awaitItem())
                 cartFlow.value = listOf(item(id = "p1"))
 
                 val expectedItems = listOf(item(id = "p1"))
                 assertEquals(
                     CartUiState.Success(expectedItems, calculateTotals(expectedItems, null)),
                     awaitItem(),
+                )
+            }
+            coVerify(exactly = 2) { repository.refresh() }
+        }
+
+    @Test
+    fun `a successful retry with an empty cart leaves Error for an empty Success`() =
+        runTest(UnconfinedTestDispatcher()) {
+            every { repository.observeCart() } returns MutableStateFlow(emptyList())
+            coEvery { repository.refresh() } returnsMany
+                listOf(Result.failure(IOException("offline")), Result.success(Unit))
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                assertEquals(CartUiState.Error(CartErrorReason.NoCacheAvailable), awaitItem())
+
+                viewModel.retry()
+
+                assertEquals(
+                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    awaitItem(),
+                )
+            }
+        }
+
+    @Test
+    fun `a failed manual refresh on an already-loaded empty cart keeps Success instead of demoting to Error`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cartFlow = MutableStateFlow<List<CartItem>>(emptyList())
+            every { repository.observeCart() } returns cartFlow
+            var refreshCalls = 0
+            val refreshGate = CompletableDeferred<Result<Unit>>()
+            coEvery { repository.refresh() } coAnswers {
+                refreshCalls++
+                // Call 1 (init's automatic load) resolves immediately and successfully, landing
+                // the empty cart in Loaded. Call 2+ (the manual pull-to-refresh below) is gated so
+                // the intermediate isRefreshing=true state is observable before it resolves.
+                if (refreshCalls > 1) refreshGate.await() else Result.success(Unit)
+            }
+
+            val viewModel = newViewModel()
+
+            viewModel.state.test {
+                // init's automatic refresh already succeeded (empty cart, no error): Loaded-empty.
+                val loaded = awaitItem() as CartUiState.Success
+                assertEquals(emptyList<CartItem>(), loaded.items)
+                assertFalse(loaded.isRefreshing)
+
+                viewModel.onRefresh()
+
+                val refreshing = awaitItem() as CartUiState.Success
+                assertTrue(refreshing.isRefreshing)
+
+                refreshGate.complete(Result.failure(IOException("offline")))
+
+                // Manual refresh fails, but loadPhase was Loaded (not Loading) when it landed, so
+                // design Decision 4's guard keeps loadPhase unchanged: the empty cart stays
+                // Success, it is NOT demoted to Error.
+                val afterFailedRefresh = awaitItem() as CartUiState.Success
+                assertFalse(afterFailedRefresh.isRefreshing)
+                assertEquals(
+                    CartUiState.Success(emptyList(), calculateTotals(emptyList(), null)),
+                    afterFailedRefresh,
                 )
             }
             coVerify(exactly = 2) { repository.refresh() }
@@ -260,6 +329,20 @@ class CartViewModelTest {
         }
 
     @Test
+    fun `a navigate event survives a gap before any collector attaches`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val cartItems = listOf(item(id = "p1"))
+            withReadyCart(cartItems)
+
+            val viewModel = newViewModel()
+            viewModel.onConfirmPurchase()
+
+            viewModel.events.test {
+                assertEquals(CartEvent.NavigateToSummary("", 0.0, "all"), awaitItem())
+            }
+        }
+
+    @Test
     fun `confirming with an already-applied valid coupon reuses it without a new remote call`() =
         runTest(UnconfinedTestDispatcher()) {
             val cartItems = listOf(item(id = "p1", category = "technology"))
@@ -299,7 +382,11 @@ class CartViewModelTest {
 
             val viewModel = newViewModel()
             viewModel.onCouponInputChanged("TECH15")
-            assertTrue((viewModel.state.value as CartUiState.Success).canConfirm)
+            // Under WhileSubscribed, `.value` is the initial Loading until a collector attaches
+            // (design Decision 6) — attach one here to read the live reduced state.
+            viewModel.state.test {
+                assertTrue((awaitItem() as CartUiState.Success).canConfirm)
+            }
 
             viewModel.events.test {
                 viewModel.onConfirmPurchase()
@@ -324,8 +411,12 @@ class CartViewModelTest {
 
             expectNoEvents()
         }
-        val finalState = viewModel.state.value as CartUiState.Success
-        assertFalse(finalState.canConfirm)
+        // Under WhileSubscribed, `.value` is the initial Loading until a collector attaches
+        // (design Decision 6) — attach one here to read the live reduced state.
+        viewModel.state.test {
+            val finalState = awaitItem() as CartUiState.Success
+            assertFalse(finalState.canConfirm)
+        }
     }
 
     @Test

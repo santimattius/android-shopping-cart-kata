@@ -54,7 +54,8 @@ The system MUST model the validation outcome as a closed type (e.g. sealed): Not
 
 ### Requirement: Confirm Purchase gating
 
-The system MUST gate navigation to Summary on the current coupon state without an unnecessary remote call.
+The system MUST gate navigation to Summary on the current coupon state without an unnecessary remote call. The navigation handoff MUST be delivered through a buffered, single-consumer channel (`Channel(Channel.BUFFERED)` exposed as `receiveAsFlow()`) and MUST be delivered exactly once to that consumer, surviving a transient gap where the consumer is not actively collecting (e.g. a configuration-change resubscription window). This channel is fan-out to one collector, not a broadcast; introducing a second concurrent collector requires revisiting this requirement.
+(Previously: gating logic only; delivery used an unspecified `MutableSharedFlow(extraBufferCapacity = 1)` that could drop the event if no collector was attached at emission time.)
 
 #### Scenario: Empty field bypasses validation
 
@@ -80,6 +81,12 @@ The system MUST gate navigation to Summary on the current coupon state without a
 - WHEN the user taps Confirmar Compra
 - THEN navigation MUST NOT occur and the error message stays visible
 
+#### Scenario: Navigation event survives a consumer resubscription gap
+
+- GIVEN Confirm Purchase succeeds and emits NavigateToSummary while the screen's collector is transiently detached (e.g. mid configuration change)
+- WHEN the screen recreates and resubscribes to the event stream
+- THEN the buffered NavigateToSummary event is still delivered exactly once
+- AND no second collector receives a duplicate of the same event
 ### Requirement: Category-scoped discount calculation
 
 The system MUST apply `discount_percentage` only to the subtotal of items whose `category` matches `applicable_category`, or to all items when `applicable_category` is `all`. Non-matching items MUST pay full price. The final total MUST equal the sum of all category subtotals with the discount applied only to the matching portion.
