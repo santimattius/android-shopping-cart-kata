@@ -12,6 +12,7 @@ import com.pedidosya.kata.domain.model.CouponValidationResult
 import com.pedidosya.kata.domain.repository.CartRepository
 import com.pedidosya.kata.domain.usecase.CalculateTotals
 import com.pedidosya.kata.domain.usecase.ValidateCoupon
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,7 +85,7 @@ class CartViewModel(
             else -> {
                 val activeCoupon = (inputs.coupon as? CouponValidationResult.Valid)?.coupon
                 CartUiState.Success(
-                    items = items,
+                    items = items.toImmutableList(),
                     totals = calculateTotals(items, activeCoupon),
                     couponInput = inputs.couponInput,
                     coupon = inputs.coupon,

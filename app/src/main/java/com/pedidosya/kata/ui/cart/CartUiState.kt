@@ -3,6 +3,7 @@ package com.pedidosya.kata.ui.cart
 import com.pedidosya.kata.domain.model.CartItem
 import com.pedidosya.kata.domain.model.CartTotals
 import com.pedidosya.kata.domain.model.CouponValidationResult
+import kotlinx.collections.immutable.ImmutableList
 
 /**
  * Closed render state for the cart screen, per `sdd/shopping-cart/design`.
@@ -24,7 +25,7 @@ sealed interface CartUiState {
      * in flight (distinct from [isValidating], which tracks coupon validation).
      */
     data class Success(
-        val items: List<CartItem>,
+        val items: ImmutableList<CartItem>,
         val totals: CartTotals,
         val couponInput: String = "",
         val coupon: CouponValidationResult = CouponValidationResult.NotApplied,

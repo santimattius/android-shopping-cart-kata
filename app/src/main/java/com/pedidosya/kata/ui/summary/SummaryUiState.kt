@@ -1,6 +1,7 @@
 package com.pedidosya.kata.ui.summary
 
 import com.pedidosya.kata.domain.model.CartItem
+import kotlinx.collections.immutable.ImmutableList
 
 /**
  * Closed render state for the purchase summary screen, per `sdd/shopping-cart/design`.
@@ -21,7 +22,7 @@ sealed interface SummaryUiState {
      * an effective/blended percentage. `0.0` when no coupon was applied.
      */
     data class Success(
-        val items: List<CartItem>,
+        val items: ImmutableList<CartItem>,
         val total: Double,
         val nominalPercentage: Double,
     ) : SummaryUiState

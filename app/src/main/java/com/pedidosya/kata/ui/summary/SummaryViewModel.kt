@@ -9,6 +9,7 @@ import com.pedidosya.kata.App
 import com.pedidosya.kata.domain.model.Coupon
 import com.pedidosya.kata.domain.repository.CartRepository
 import com.pedidosya.kata.domain.usecase.CalculateTotals
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -47,7 +48,7 @@ class SummaryViewModel(
         .map { items ->
             val totals = calculateTotals(items, coupon)
             SummaryUiState.Success(
-                items = items,
+                items = items.toImmutableList(),
                 total = totals.total,
                 nominalPercentage = totals.nominalPercentage,
             )
