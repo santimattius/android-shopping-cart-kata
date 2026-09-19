@@ -40,9 +40,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Unit 5 — Delete `ExampleInstrumentedTest`
 
-- [ ] 2.1 Independently confirm `ExampleInstrumentedTest.kt` fails to compile today: it imports `androidx.test.ext.junit.runners.AndroidJUnit4`, not exported by the declared `androidx.test:runner`/`:rules` dependencies.
-- [ ] 2.2 Delete `app/src/androidTest/java/com/pedidosya/kata/fruit_store/ExampleInstrumentedTest.kt`; remove now-empty `androidTest` directories.
-- [ ] 2.3 Remove the 4 `androidTestImplementation(...)` lines from `app/build.gradle.kts`; remove the `androidx-test-runner`/`androidx-test-rules` library entries and their versions from `gradle/libs.versions.toml`.
+- [x] 2.1 Independently confirm `ExampleInstrumentedTest.kt` fails to compile today: it imports `androidx.test.ext.junit.runners.AndroidJUnit4`, not exported by the declared `androidx.test:runner`/`:rules` dependencies. **REFUTED — see apply-progress**: `./gradlew :app:compileDebugAndroidTestKotlin` was BUILD SUCCESSFUL before deletion; `androidx.test.ext:junit:1.1.5` was present transitively via `androidx.compose.ui:ui-test-junit4` (declared `androidTestImplementation(libs.androidx.ui.test.junit4)`), not via `runner`/`rules`. The file still asserted a wrong value (`"com.pedidosya.kata.fruit_store"` instead of applicationId `"com.pedidosya.kata"`) and was never executed by `testDebugUnitTest`, so deletion proceeded on that basis.
+- [x] 2.2 Delete `app/src/androidTest/java/com/pedidosya/kata/fruit_store/ExampleInstrumentedTest.kt`; remove now-empty `androidTest` directories.
+- [x] 2.3 Remove the 4 `androidTestImplementation(...)` lines from `app/build.gradle.kts`; remove the `androidx-test-runner`/`androidx-test-rules` library entries and their versions from `gradle/libs.versions.toml`.
 
 ## Phase 3: Unit 2 — Container/Presentational Split
 
